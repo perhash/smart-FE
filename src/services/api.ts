@@ -1,6 +1,4 @@
-import { API_ENDPOINTS } from '../config/environment';
-
-const API_BASE_URL = API_ENDPOINTS.BASE_URL;
+const API_BASE_URL = 'http://localhost:5000/api';
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
