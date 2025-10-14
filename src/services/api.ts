@@ -121,6 +121,33 @@ class ApiService {
     return this.request(API_ENDPOINTS.RIDER_DASHBOARD(riderId));
   }
 
+  async createRider(riderData: any) {
+    return this.request(API_ENDPOINTS.RIDERS, {
+      method: 'POST',
+      body: JSON.stringify(riderData),
+    });
+  }
+
+  async updateRider(id: string, riderData: any) {
+    return this.request(API_ENDPOINTS.RIDER_BY_ID(id), {
+      method: 'PUT',
+      body: JSON.stringify(riderData),
+    });
+  }
+
+  async updateRiderStatus(id: string, isActive: boolean) {
+    return this.request(`${API_ENDPOINTS.RIDER_BY_ID(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    });
+  }
+
+  async deleteRider(id: string) {
+    return this.request(API_ENDPOINTS.RIDER_BY_ID(id), {
+      method: 'DELETE',
+    });
+  }
+
   // Payments API
   async getPayments(status?: string) {
     const params = status ? `?status=${status}` : '';

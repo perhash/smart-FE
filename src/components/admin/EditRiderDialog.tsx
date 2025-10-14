@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -6,7 +6,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,26 +16,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 
-interface AddRiderDialogProps {
-  trigger?: React.ReactNode;
-  onSuccess?: () => void;
+interface EditRiderDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  rider: any;
+  onRiderUpdated: (updatedRider: any) => void;
 }
 
-export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
-  const [open, setOpen] = useState(false);
+export function EditRiderDialog({ open, onOpenChange, rider, onRiderUpdated }: EditRiderDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
-    password: "",
-    confirmPassword: "",
-    status: "active",
+    isActive: true,
   });
+
+  useEffect(() => {
+    if (rider) {
+      setFormData({
+        name: rider.name || "",
+        phone: rider.phone || "",
+        email: rider.email || "",
+        isActive: rider.isActive !== undefined ? rider.isActive : true,
+      });
+    }
+  }, [rider]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -48,6 +57,11 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!rider?.id) {
+      toast.error("Rider ID not found");
+      return;
+    }
+
     // Validation
     if (!formData.name.trim()) {
       toast.error("Please enter rider name");
@@ -71,16 +85,6 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
       return;
     }
 
-    if (!formData.password.trim() || formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
     // Phone validation
     const phoneRegex = /^[+]?[\d\s-()]+$/;
     if (!phoneRegex.test(formData.phone)) {
@@ -95,33 +99,19 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
         name: formData.name.trim(),
         phone: formData.phone.trim(),
         email: formData.email.trim(),
-        password: formData.password,
+        isActive: formData.isActive,
       };
 
-      const response = await apiService.createRider(riderData);
+      const response = await apiService.updateRider(rider.id, riderData);
       
       if (response.success) {
-        toast.success(`Rider "${formData.name}" created successfully!`);
-        
-        // Reset form
-        setFormData({
-          name: "",
-          phone: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          status: "active",
-        });
-        setOpen(false);
-        
-        // Call onSuccess callback to refresh the riders list
-        if (onSuccess) {
-          onSuccess();
-        }
+        toast.success(`Rider "${formData.name}" updated successfully!`);
+        onRiderUpdated(response.data);
+        onOpenChange(false);
       }
     } catch (error: any) {
-      console.error('Error creating rider:', error);
-      const errorMessage = error.message || 'Failed to create rider';
+      console.error('Error updating rider:', error);
+      const errorMessage = error.message || 'Failed to update rider';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -129,20 +119,12 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Rider
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Rider</DialogTitle>
+          <DialogTitle>Edit Rider</DialogTitle>
           <DialogDescription>
-            Create a new rider account for deliveries
+            Update rider information
           </DialogDescription>
         </DialogHeader>
 
@@ -189,41 +171,12 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">
-              Password <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Minimum 6 characters"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={6}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">
-              Confirm Password <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="status">
               Status <span className="text-destructive">*</span>
             </Label>
             <Select 
-              value={formData.status} 
-              onValueChange={(value) => setFormData({ ...formData, status: value })}
+              value={formData.isActive ? "active" : "inactive"} 
+              onValueChange={(value) => setFormData({ ...formData, isActive: value === "active" })}
             >
               <SelectTrigger id="status">
                 <SelectValue />
@@ -236,12 +189,12 @@ export function AddRiderDialog({ trigger, onSuccess }: AddRiderDialogProps) {
           </div>
 
           <div className="flex gap-3 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Creating..." : "Add Rider"}
+              {loading ? "Updating..." : "Update Rider"}
             </Button>
           </div>
         </form>
