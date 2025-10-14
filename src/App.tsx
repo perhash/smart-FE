@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminLayout from "./components/layouts/AdminLayout";
 import RiderLayout from "./components/layouts/RiderLayout";
+import PWAUpdatePrompt from "./components/PWAUpdatePrompt";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Customers from "./pages/admin/Customers";
@@ -30,6 +31,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAUpdatePrompt />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
