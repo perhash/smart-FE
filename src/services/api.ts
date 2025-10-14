@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -29,32 +29,32 @@ class ApiService {
 
   // Dashboard API
   async getDashboardStats() {
-    return this.request('/dashboard/stats');
+    return this.request(API_ENDPOINTS.DASHBOARD_STATS);
   }
 
   async getRecentActivities() {
-    return this.request('/dashboard/activities');
+    return this.request(API_ENDPOINTS.DASHBOARD_ACTIVITIES);
   }
 
   // Orders API
   async getOrders(status?: string) {
     const params = status ? `?status=${status}` : '';
-    return this.request(`/orders${params}`);
+    return this.request(`${API_ENDPOINTS.ORDERS}${params}`);
   }
 
   async getOrderById(id: string) {
-    return this.request(`/orders/${id}`);
+    return this.request(API_ENDPOINTS.ORDER_BY_ID(id));
   }
 
   async createOrder(orderData: any) {
-    return this.request('/orders', {
+    return this.request(API_ENDPOINTS.ORDERS, {
       method: 'POST',
       body: JSON.stringify(orderData),
     });
   }
 
   async updateOrderStatus(id: string, status: string, riderId?: string) {
-    return this.request(`/orders/${id}`, {
+    return this.request(API_ENDPOINTS.ORDER_BY_ID(id), {
       method: 'PATCH',
       body: JSON.stringify({ status, riderId }),
     });
@@ -63,22 +63,22 @@ class ApiService {
   // Customers API
   async getCustomers(status?: string) {
     const params = status ? `?status=${status}` : '';
-    return this.request(`/customers${params}`);
+    return this.request(`${API_ENDPOINTS.CUSTOMERS}${params}`);
   }
 
   async getCustomerById(id: string) {
-    return this.request(`/customers/${id}`);
+    return this.request(API_ENDPOINTS.CUSTOMER_BY_ID(id));
   }
 
   async updateCustomer(id: string, customerData: any) {
-    return this.request(`/customers/${id}`, {
+    return this.request(API_ENDPOINTS.CUSTOMER_BY_ID(id), {
       method: 'PUT',
       body: JSON.stringify(customerData),
     });
   }
 
   async updateCustomerStatus(id: string, isActive: boolean) {
-    return this.request(`/customers/${id}/status`, {
+    return this.request(API_ENDPOINTS.CUSTOMER_STATUS(id), {
       method: 'PATCH',
       body: JSON.stringify({ isActive }),
     });
@@ -86,7 +86,7 @@ class ApiService {
 
   async createCustomer(customerData: any) {
     try {
-      const response = await fetch(`${API_BASE_URL}/customers`, {
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CUSTOMERS}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,25 +110,25 @@ class ApiService {
 
   // Riders API
   async getRiders() {
-    return this.request('/riders');
+    return this.request(API_ENDPOINTS.RIDERS);
   }
 
   async getRiderById(id: string) {
-    return this.request(`/riders/${id}`);
+    return this.request(API_ENDPOINTS.RIDER_BY_ID(id));
   }
 
   async getRiderDashboard(riderId: string) {
-    return this.request(`/riders/${riderId}/dashboard`);
+    return this.request(API_ENDPOINTS.RIDER_DASHBOARD(riderId));
   }
 
   // Payments API
   async getPayments(status?: string) {
     const params = status ? `?status=${status}` : '';
-    return this.request(`/payments${params}`);
+    return this.request(`${API_ENDPOINTS.PAYMENTS}${params}`);
   }
 
   async updatePaymentStatus(id: string, paymentData: any) {
-    return this.request(`/payments/${id}`, {
+    return this.request(API_ENDPOINTS.PAYMENT_BY_ID(id), {
       method: 'PATCH',
       body: JSON.stringify(paymentData),
     });
@@ -136,11 +136,11 @@ class ApiService {
 
   // Connection test
   async testConnection() {
-    return this.request('/test');
+    return this.request(API_ENDPOINTS.TEST);
   }
 
   async healthCheck() {
-    return this.request('/health');
+    return this.request(API_ENDPOINTS.HEALTH);
   }
 }
 
