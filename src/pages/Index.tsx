@@ -4,6 +4,7 @@ import { Droplet, TruckIcon, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ConnectionTest } from "@/components/ConnectionTest";
 import { ErrorTest } from "@/components/ErrorTest";
+import { CorsTest } from "@/components/CorsTest";
 
 const Index = () => {
   return (
@@ -26,6 +27,11 @@ const Index = () => {
         {/* Error Test */}
         <div className="w-full max-w-4xl">
           <ErrorTest />
+        </div>
+
+        {/* CORS Test */}
+        <div className="w-full max-w-4xl">
+          <CorsTest />
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 pt-8">
