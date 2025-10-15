@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, Phone, Key, Eye, EyeOff } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { User, Mail, Phone, Building, Key, Eye, EyeOff } from "lucide-react";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
 
@@ -14,13 +15,14 @@ interface UserProfile {
   role: string;
   profile: {
     name: string;
-    phone: string;
+    company?: string;
   };
 }
 
-const RiderProfile = () => {
+const AdminProfile = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   
   // Password update states
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -138,7 +140,7 @@ const RiderProfile = () => {
               <Phone className="h-4 w-4 text-muted-foreground" />
               <div>
                 <Label className="text-sm text-muted-foreground">Phone</Label>
-                <p className="font-medium">{user?.profile?.phone}</p>
+                <p className="font-medium">{user?.phone || 'Not provided'}</p>
               </div>
             </div>
             
@@ -149,6 +151,16 @@ const RiderProfile = () => {
                 <p className="font-medium">{user?.profile?.name}</p>
               </div>
             </div>
+            
+            {user?.profile?.company && (
+              <div className="flex items-center gap-3">
+                <Building className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-sm text-muted-foreground">Company</Label>
+                  <p className="font-medium">{user.profile.company}</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -258,4 +270,4 @@ const RiderProfile = () => {
   );
 };
 
-export default RiderProfile;
+export default AdminProfile;

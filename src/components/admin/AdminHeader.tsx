@@ -1,4 +1,4 @@
-import { Bell, User } from "lucide-react";
+import { Bell, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,8 +10,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
+import { apiService } from "@/services/api";
+import { toast } from "sonner";
 
 export function AdminHeader() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    apiService.logout();
+    toast.success("Logged out successfully");
+    navigate('/');
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b bg-card">
       <div className="flex h-16 items-center gap-4 px-4 md:px-6">
@@ -50,10 +61,17 @@ export function AdminHeader() {
           <DropdownMenuContent align="end" className="bg-popover">
             <DropdownMenuLabel>Admin Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/admin/profile')}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/admin/settings')}>
+              Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

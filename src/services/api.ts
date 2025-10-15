@@ -5,18 +5,29 @@ class ApiService {
     const url = `${API_BASE_URL}${endpoint}`;
     
     const config: RequestInit = {
+      ...options,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      ...options,
     };
+
 
     try {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get error message from response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // If we can't parse the error response, use the default message
+        }
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -159,6 +170,60 @@ class ApiService {
       method: 'PATCH',
       body: JSON.stringify(paymentData),
     });
+  }
+
+  // Authentication
+  async login(credentials: { email: string; password: string }) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }
+
+  async verifyToken() {
+    const token = this.getAuthToken();
+    if (!token) {
+      throw new Error('No token found');
+    }
+    
+    return this.request('/auth/verify', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+  }
+
+  async updatePassword(passwordData: { currentPassword: string; newPassword: string }) {
+    const token = this.getAuthToken();
+    if (!token) {
+      throw new Error('No token found');
+    }
+    
+    return this.request('/auth/update-password', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(passwordData),
+    });
+  }
+
+  getAuthToken() {
+    return localStorage.getItem('token');
+  }
+
+  getCurrentUser() {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  }
+
+  isAuthenticated() {
+    return !!this.getAuthToken();
   }
 
   // Connection test
