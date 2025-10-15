@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { apiService } from "@/services/api";
 
 interface CreateOrderDialogProps {
   trigger?: React.ReactNode;
@@ -34,19 +35,39 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [pricePerBottle, setPricePerBottle] = useState("90");
   const [selectedRider, setSelectedRider] = useState("");
   const [notes, setNotes] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [riders, setRiders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock data - replace with actual data fetching
-  const customers = [
-    { id: 1, name: "Ramesh Kumar", phone: "+91 98765 43210", balance: -450, lastOrder: "5 bottles" },
-    { id: 2, name: "Priya Sharma", phone: "+91 98765 43211", balance: 200, lastOrder: "3 bottles" },
-    { id: 3, name: "Vikram Singh", phone: "+91 98765 43212", balance: -1200, lastOrder: "7 bottles" },
-  ];
+  // Fetch customers and riders on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [customersResponse, ridersResponse] = await Promise.all([
+          apiService.getCustomers(),
+          apiService.getRiders()
+        ]);
 
-  const riders = [
-    { id: 1, name: "Ali Khan", status: "active" },
-    { id: 2, name: "Ravi Kumar", status: "active" },
-    { id: 3, name: "Mohammed Irfan", status: "active" },
-  ];
+        if (customersResponse.success) {
+          setCustomers(customersResponse.data);
+        }
+        if (ridersResponse.success) {
+          setRiders(ridersResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load customers and riders');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (open) {
+      fetchData();
+    }
+  }, [open]);
 
   const filteredCustomers = customers.filter(
     (customer) =>
@@ -54,7 +75,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       customer.phone.includes(searchQuery)
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedCustomer) {
@@ -74,16 +95,49 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
     const totalAmount = parseInt(bottles) * parseInt(pricePerBottle);
     
-    toast.success(`Order created successfully! Total: ₹${totalAmount}`);
-    
-    // Reset form
-    setSelectedCustomer(null);
-    setSearchQuery("");
-    setBottles("");
-    setPricePerBottle("90");
-    setSelectedRider("");
-    setNotes("");
-    setOpen(false);
+    try {
+      setSubmitting(true);
+      
+      // Create order with rider assignment
+      const orderData = {
+        customerId: selectedCustomer.id,
+        riderId: selectedRider,
+        totalAmount: totalAmount,
+        notes: notes,
+        priority: 'NORMAL'
+      };
+
+      const response = await apiService.createOrder(orderData);
+      
+      if (response.success) {
+        toast.success(`Order created and assigned successfully! Total: RS ${totalAmount}`);
+        
+        // Send notification to rider
+        await apiService.sendNotification({
+          userId: selectedRider,
+          title: 'New Order Assigned',
+          message: `You have been assigned a new order for ${selectedCustomer.name}. Amount: RS ${totalAmount}`,
+          type: 'ORDER_ASSIGNED',
+          data: { orderId: response.data.id }
+        });
+        
+        // Reset form
+        setSelectedCustomer(null);
+        setSearchQuery("");
+        setBottles("");
+        setPricePerBottle("90");
+        setSelectedRider("");
+        setNotes("");
+        setOpen(false);
+      } else {
+        toast.error(response.message || 'Failed to create order');
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast.error('Failed to create order. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -120,7 +174,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             
             {searchQuery && !selectedCustomer && (
               <div className="mt-2 max-h-48 overflow-y-auto border rounded-md">
-                {filteredCustomers.length > 0 ? (
+                {loading ? (
+                  <p className="p-3 text-sm text-muted-foreground">Loading customers...</p>
+                ) : filteredCustomers.length > 0 ? (
                   filteredCustomers.map((customer) => (
                     <div
                       key={customer.id}
@@ -135,8 +191,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                           <p className="font-medium">{customer.name}</p>
                           <p className="text-sm text-muted-foreground">{customer.phone}</p>
                         </div>
-                        <Badge variant={customer.balance < 0 ? "destructive" : "default"}>
-                          {customer.balance < 0 ? `₹${Math.abs(customer.balance)} due` : "Clear"}
+                        <Badge variant={customer.currentBalance < 0 ? "destructive" : "default"}>
+                          {customer.currentBalance < 0 ? `RS ${Math.abs(customer.currentBalance)} due` : "Clear"}
                         </Badge>
                       </div>
                     </div>
@@ -155,13 +211,13 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 <div className="space-y-1">
                   <p className="font-medium">{selectedCustomer.name}</p>
                   <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
-                  <p className="text-sm text-muted-foreground">Last order: {selectedCustomer.lastOrder}</p>
+                  <p className="text-sm text-muted-foreground">Bottles: {selectedCustomer.bottleCount}</p>
                 </div>
                 <div className="text-right">
-                  <Badge variant={selectedCustomer.balance < 0 ? "destructive" : "default"}>
-                    {selectedCustomer.balance < 0 ? "Payable" : "Receivable"}
+                  <Badge variant={selectedCustomer.currentBalance < 0 ? "destructive" : "default"}>
+                    {selectedCustomer.currentBalance < 0 ? "Payable" : "Receivable"}
                   </Badge>
-                  <p className="text-sm font-medium mt-1">₹{Math.abs(selectedCustomer.balance)}</p>
+                  <p className="text-sm font-medium mt-1">RS {Math.abs(selectedCustomer.currentBalance)}</p>
                 </div>
               </div>
               <Button
@@ -211,7 +267,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
               <div className="flex items-center justify-between">
                 <span className="font-medium">Total Amount</span>
                 <span className="text-2xl font-bold">
-                  ₹{parseInt(bottles) * parseInt(pricePerBottle)}
+                  RS {parseInt(bottles) * parseInt(pricePerBottle)}
                 </span>
               </div>
             </div>
@@ -225,16 +281,22 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 <SelectValue placeholder="Select a rider" />
               </SelectTrigger>
               <SelectContent>
-                {riders.map((rider) => (
-                  <SelectItem key={rider.id} value={rider.id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <span>{rider.name}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {rider.status}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
+                {loading ? (
+                  <SelectItem value="loading" disabled>Loading riders...</SelectItem>
+                ) : riders.length > 0 ? (
+                  riders.map((rider) => (
+                    <SelectItem key={rider.id} value={rider.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{rider.name}</span>
+                        <Badge variant="outline" className="ml-auto">
+                          {rider.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-riders" disabled>No riders available</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -256,7 +318,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Create & Assign Order</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Creating..." : "Create & Assign Order"}
+            </Button>
           </div>
         </form>
       </DialogContent>

@@ -64,10 +64,28 @@ class ApiService {
     });
   }
 
-  async updateOrderStatus(id: string, status: string, riderId?: string) {
+  async updateOrderStatus(id: string, status: string) {
     return this.request(API_ENDPOINTS.ORDER_BY_ID(id), {
       method: 'PATCH',
-      body: JSON.stringify({ status, riderId }),
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Notifications API
+  async sendNotification(notificationData: any) {
+    return this.request('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(notificationData),
+    });
+  }
+
+  async getNotifications() {
+    return this.request('/notifications');
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'PATCH'
     });
   }
 

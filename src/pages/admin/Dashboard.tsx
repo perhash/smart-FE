@@ -4,6 +4,8 @@ import { Users, TruckIcon, Package, DollarSign, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreateOrderDialog } from "@/components/admin/CreateOrderDialog";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
+import NotificationForm from "@/components/NotificationForm";
+import PWAStatus from "@/components/PWAStatus";
 import { apiService } from "@/services/api";
 import { useEffect, useState } from "react";
 
@@ -198,6 +200,21 @@ const AdminDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Notification Form for Testing */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Send Notification to Rider</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NotificationForm />
+          </CardContent>
+        </Card>
+
+        {/* PWA Status */}
+        <PWAStatus />
+      </div>
     </div>
   );
 };
