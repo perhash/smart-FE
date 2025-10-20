@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,15 +9,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ConnectionTest } from "@/components/ConnectionTest";
 import { ErrorTest } from "@/components/ErrorTest";
 import { CorsTest } from "@/components/CorsTest";
-import { apiService } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated, isAdmin, isRider, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (isAdmin) {
+        navigate('/admin');
+      } else if (isRider) {
+        navigate('/rider');
+      }
+    }
+  }, [isAuthenticated, isAdmin, isRider, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,34 +39,22 @@ const Index = () => {
       return;
     }
 
-    setLoading(true);
+    setIsLoggingIn(true);
     
     try {
-      const response = await apiService.login({ email, password });
+      const result = await login(email, password);
       
-      if (response.success) {
-        // Store token in localStorage
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        
+      if (result.success) {
         toast.success("Login successful!");
-        
-        // Redirect based on role
-        if (response.data.user.role === 'ADMIN') {
-          navigate('/admin');
-        } else if (response.data.user.role === 'RIDER') {
-          navigate('/rider');
-        } else {
-          toast.error("Invalid user role");
-        }
+        // Navigation will be handled by useEffect
       } else {
-        toast.error(response.message || "Login failed");
+        toast.error(result.message || "Login failed");
       }
     } catch (error) {
       console.error('Login error:', error);
       toast.error("Login failed. Please check your credentials.");
     } finally {
-      setLoading(false);
+      setIsLoggingIn(false);
     }
   };
 
@@ -118,8 +118,8 @@ const Index = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Signing in..." : "Sign In"}
+              <Button type="submit" className="w-full" disabled={isLoggingIn || loading}>
+                {isLoggingIn ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </CardContent>

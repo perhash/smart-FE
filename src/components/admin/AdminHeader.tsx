@@ -11,16 +11,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useNavigate } from "react-router-dom";
-import { apiService } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export function AdminHeader() {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
 
-  const handleLogout = () => {
-    apiService.logout();
+  const handleLogout = async () => {
+    await logout();
     toast.success("Logged out successfully");
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -47,7 +48,7 @@ export function AdminHeader() {
             <DropdownMenuLabel>Notifications</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>New order from Customer #123</DropdownMenuItem>
-            <DropdownMenuItem>Payment received: ₹500</DropdownMenuItem>
+            <DropdownMenuItem>Payment received: RS. 500</DropdownMenuItem>
             <DropdownMenuItem>Rider completed 5 deliveries</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

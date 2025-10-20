@@ -1,30 +1,52 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, User, TruckIcon, Package } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { apiService } from "@/services/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const OrderDetail = () => {
   const { id } = useParams();
+  const [order, setOrder] = useState<any>(null);
+  const [riders, setRiders] = useState<any[]>([]);
+  const [selectedRider, setSelectedRider] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [assigning, setAssigning] = useState(false);
 
-  const order = {
-    id: `#${id}`,
-    customer: {
-      name: "Ramesh Kumar",
-      phone: "+91 98765 43210",
-      address: "123, Green Park, Sector 15",
-    },
-    rider: {
-      name: "Ali Khan",
-      phone: "+91 98765 43215",
-    },
-    bottles: 5,
-    pricePerBottle: 90,
-    totalAmount: 450,
-    status: "assigned",
-    paymentStatus: "unpaid",
-    date: "2024-01-15",
-    notes: "Deliver before 10 AM",
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [orderRes, ridersRes] = await Promise.all([
+          apiService.getOrderById(id as string) as any,
+          apiService.getRiders() as any,
+        ]);
+        if (orderRes?.success) {
+          setOrder(orderRes.data);
+        }
+        if (ridersRes?.success) {
+          setRiders(ridersRes.data);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  const handleAssign = async () => {
+    if (!selectedRider) return;
+    try {
+      setAssigning(true);
+      const res = await apiService.updateOrderStatus(id as string, 'ASSIGNED', selectedRider) as any;
+      if (res?.success) {
+        setOrder(res.data);
+      }
+    } finally {
+      setAssigning(false);
+    }
   };
 
   const timeline = [
@@ -33,6 +55,10 @@ const OrderDetail = () => {
     { status: "In Transit", time: "-", completed: false },
     { status: "Delivered", time: "-", completed: false },
   ];
+
+  if (loading || !order) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -43,7 +69,7 @@ const OrderDetail = () => {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold">Order {order.id}</h1>
+          <h1 className="text-3xl font-bold">Order #{order.id.slice(-4)}</h1>
           <p className="text-muted-foreground">Order Details</p>
         </div>
         <div className="flex gap-2">
@@ -75,7 +101,7 @@ const OrderDetail = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Address</p>
-              <p className="font-medium">{order.customer.address}</p>
+              <p className="font-medium">{[order.customer.houseNo, order.customer.streetNo, order.customer.area, order.customer.city].filter(Boolean).join(' ')}</p>
             </div>
           </CardContent>
         </Card>
@@ -88,14 +114,35 @@ const OrderDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium">{order.rider.name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium">{order.rider.phone}</p>
-            </div>
+            {order.rider ? (
+              <>
+                <div>
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="font-medium">{order.rider.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Phone</p>
+                  <p className="font-medium">{order.rider.phone}</p>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">No rider assigned</p>
+                <div className="flex gap-2 items-center">
+                  <Select value={selectedRider} onValueChange={setSelectedRider}>
+                    <SelectTrigger className="w-[240px]">
+                      <SelectValue placeholder="Select rider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {riders.map((r: any) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleAssign} disabled={!selectedRider || assigning}>Assign</Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -110,16 +157,65 @@ const OrderDetail = () => {
         <CardContent className="space-y-4">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Quantity</span>
-            <span className="font-medium">{order.bottles} bottles</span>
+            <span className="font-medium">{order.numberOfBottles} bottles</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Price per bottle</span>
-            <span className="font-medium">₹{order.pricePerBottle}</span>
+            <span className="font-medium">-</span>
           </div>
+          
+          {/* Current Order Amount */}
           <div className="flex justify-between text-lg font-bold border-t pt-4">
-            <span>Total Amount</span>
-            <span>₹{order.totalAmount}</span>
+            <span>Current Order Amount</span>
+            <span>RS. {order.totalAmount}</span>
           </div>
+
+          {/* Pending Balance */}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Pending Balance</span>
+            <div className="text-right">
+              <Badge variant={(order.customer?.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
+                {(order.customer?.currentBalance ?? 0) < 0 ? "Payable" : (order.customer?.currentBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
+              </Badge>
+              <p className="text-sm font-semibold mt-1">
+                RS. {Math.abs(order.customer?.currentBalance ?? 0)}
+              </p>
+            </div>
+          </div>
+
+          {/* Total for Admin Understanding */}
+          <div className="flex justify-between text-xl font-bold border-t-2 border-primary pt-4 bg-primary/5 p-3 rounded-lg">
+            <span>Total for Admin</span>
+            <span className="text-primary">
+              RS. {(() => {
+                const currentOrderAmount = order.totalAmount ?? 0;
+                const customerBalance = order.customer?.currentBalance ?? 0;
+                if (customerBalance < 0) {
+                  // Payable - subtract from order amount
+                  return currentOrderAmount - Math.abs(customerBalance);
+                } else if (customerBalance > 0) {
+                  // Receivable - add to order amount
+                  return currentOrderAmount + customerBalance;
+                } else {
+                  // Clear balance - no adjustment
+                  return currentOrderAmount;
+                }
+              })()}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {(() => {
+              const customerBalance = order.customer?.currentBalance ?? 0;
+              if (customerBalance < 0) {
+                return `Order amount minus payable balance`;
+              } else if (customerBalance > 0) {
+                return `Order amount plus receivable balance`;
+              } else {
+                return `No balance adjustment needed`;
+              }
+            })()}
+          </p>
+          
           {order.notes && (
             <div>
               <p className="text-sm text-muted-foreground mb-1">Notes</p>

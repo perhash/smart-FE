@@ -2,8 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthGuard } from "./components/AuthGuard";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ProtectedRoute, AdminRoute, RiderRoute } from "./components/ProtectedRoute";
+import RootRedirect from "./components/RootRedirect";
 import AdminLayout from "./components/layouts/AdminLayout";
 import RiderLayout from "./components/layouts/RiderLayout";
 import PWAUpdatePrompt from "./components/PWAUpdatePrompt";
@@ -28,52 +30,64 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AppRoutes = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Login Route - Public */}
+        <Route path="/login" element={<Index />} />
+        
+        {/* Root Route - Redirect based on auth status */}
+        <Route path="/" element={<RootRedirect />} />
+        
+        {/* Admin Routes - Protected */}
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="customers/:id" element={<CustomerDetail />} />
+          <Route path="riders" element={<Riders />} />
+          <Route path="riders/:id" element={<RiderDetail />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="orders/:id" element={<OrderDetail />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="profile" element={<AdminProfile />} />
+        </Route>
+
+        {/* Rider Routes - Protected */}
+        <Route path="/rider" element={
+          <RiderRoute>
+            <RiderLayout />
+          </RiderRoute>
+        }>
+          <Route index element={<RiderDashboard />} />
+          <Route path="orders/:id" element={<RiderOrderDetail />} />
+          <Route path="payments" element={<RiderPayments />} />
+          <Route path="profile" element={<RiderProfile />} />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <PWAUpdatePrompt />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          
-          {/* Admin Routes - Protected */}
-          <Route path="/admin" element={
-            <AuthGuard requiredRole="ADMIN">
-              <AdminLayout />
-            </AuthGuard>
-          }>
-            <Route index element={<AdminDashboard />} />
-            <Route path="customers" element={<Customers />} />
-            <Route path="customers/:id" element={<CustomerDetail />} />
-            <Route path="riders" element={<Riders />} />
-            <Route path="riders/:id" element={<RiderDetail />} />
-            <Route path="orders" element={<Orders />} />
-            <Route path="orders/:id" element={<OrderDetail />} />
-            <Route path="payments" element={<Payments />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="profile" element={<AdminProfile />} />
-          </Route>
-
-          {/* Rider Routes - Protected */}
-          <Route path="/rider" element={
-            <AuthGuard requiredRole="RIDER">
-              <RiderLayout />
-            </AuthGuard>
-          }>
-            <Route index element={<RiderDashboard />} />
-            <Route path="orders/:id" element={<RiderOrderDetail />} />
-            <Route path="payments" element={<RiderPayments />} />
-            <Route path="profile" element={<RiderProfile />} />
-          </Route>
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <PWAUpdatePrompt />
+        <AppRoutes />
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

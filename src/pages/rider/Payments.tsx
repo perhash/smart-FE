@@ -33,7 +33,7 @@ const RiderPayments = () => {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{summary.totalCollected}</div>
+            <div className="text-2xl font-bold">RS. {summary.totalCollected}</div>
             <p className="text-xs text-muted-foreground">This week</p>
           </CardContent>
         </Card>
@@ -44,7 +44,7 @@ const RiderPayments = () => {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{summary.todayCollected}</div>
+            <div className="text-2xl font-bold">RS. {summary.todayCollected}</div>
             <p className="text-xs text-muted-foreground">{paidOrders.length} orders</p>
           </CardContent>
         </Card>
@@ -55,7 +55,7 @@ const RiderPayments = () => {
             <DollarSign className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{summary.pendingCollection}</div>
+            <div className="text-2xl font-bold">RS. {summary.pendingCollection}</div>
             <p className="text-xs text-muted-foreground">{unpaidOrders.length} orders</p>
           </CardContent>
         </Card>
@@ -78,7 +78,7 @@ const RiderPayments = () => {
                     <p className="text-sm text-muted-foreground">{order.customer}</p>
                     <p className="text-xs text-muted-foreground">{order.time}</p>
                   </div>
-                  <p className="text-lg font-bold">₹{order.amount}</p>
+                  <p className="text-lg font-bold">RS. {order.amount}</p>
                 </CardContent>
               </Card>
             ))}
@@ -102,7 +102,7 @@ const RiderPayments = () => {
                     </div>
                     <p className="text-sm text-muted-foreground">{order.customer}</p>
                   </div>
-                  <p className="text-lg font-bold">₹{order.amount}</p>
+                  <p className="text-lg font-bold">RS. {order.amount}</p>
                 </CardContent>
               </Card>
             ))}

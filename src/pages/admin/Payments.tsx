@@ -38,7 +38,7 @@ const Payments = () => {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{summary.totalReceivables.toLocaleString()}</div>
+            <div className="text-2xl font-bold">RS. {summary.totalReceivables.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">From 23 customers</p>
           </CardContent>
         </Card>
@@ -49,7 +49,7 @@ const Payments = () => {
             <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{summary.totalPayables.toLocaleString()}</div>
+            <div className="text-2xl font-bold">RS. {summary.totalPayables.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">From 8 customers</p>
           </CardContent>
         </Card>
@@ -60,7 +60,7 @@ const Payments = () => {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{summary.todayCollected.toLocaleString()}</div>
+            <div className="text-2xl font-bold">RS. {summary.todayCollected.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">12 transactions</p>
           </CardContent>
         </Card>
@@ -78,13 +78,13 @@ const Payments = () => {
                   <div className="space-y-1">
                     <p className="font-medium">{customer.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Last payment: {customer.lastPayment} • ₹{customer.amount}
+                      Last payment: {customer.lastPayment} • RS. {customer.amount}
                     </p>
                   </div>
                   
                   <div className="text-right space-y-1">
                     <Badge variant="destructive">Outstanding</Badge>
-                    <p className="text-lg font-bold">₹{customer.outstanding}</p>
+                    <p className="text-lg font-bold">RS. {customer.outstanding}</p>
                   </div>
                 </CardContent>
               </Card>

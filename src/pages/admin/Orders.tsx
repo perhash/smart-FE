@@ -21,10 +21,9 @@ const Orders = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await apiService.getOrders(statusFilter === "all" ? undefined : statusFilter);
-        
-        if (response.success) {
-          setOrders(response.data);
+        const response = await apiService.getOrders(statusFilter === "all" ? undefined : statusFilter) as any;
+        if (response?.success) {
+          setOrders(response.data || []);
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -41,9 +40,24 @@ const Orders = () => {
     };
 
     fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
   }, [statusFilter]);
 
-  const filteredOrders = orders;
+  const filteredOrders = [...orders]
+    .sort((a: any, b: any) => {
+      // Unassigned first
+      const aUnassigned = (a.rider === 'Not assigned');
+      const bUnassigned = (b.rider === 'Not assigned');
+      if (aUnassigned !== bUnassigned) return aUnassigned ? -1 : 1;
+      const orderRank = (p?: string) => p === 'high' ? 0 : p === 'normal' || p === 'medium' ? 1 : p === 'low' ? 2 : 1;
+      const ar = orderRank(a.priority);
+      const br = orderRank(b.priority);
+      if (ar !== br) return ar - br;
+      // FIFO within same priority by created date if available, else keep as-is
+      if (a.date && b.date) return new Date(a.date).getTime() - new Date(b.date).getTime();
+      return 0;
+    });
 
   return (
     <div className="space-y-6">
@@ -75,39 +89,51 @@ const Orders = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {filteredOrders.map((order) => (
+            {filteredOrders.map((order: any) => (
               <Link
                 key={order.id}
-                to={`/admin/orders/${order.id.replace('#', '')}`}
+                to={`/admin/orders/${order.originalId || order.id.replace('#', '')}`}
                 className="block"
               >
-                <Card className="hover:bg-muted/50 transition-colors">
+                <Card className={`${order.paid ? 'bg-green-50 hover:bg-green-50/80' : 'hover:bg-muted/50'} transition-colors`}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{order.id}</p>
-                          <Badge 
-                            variant={
-                              order.status === "delivered" ? "default" : 
-                              order.status === "assigned" ? "secondary" : 
-                              "outline"
-                            }
-                          >
+                          <Badge variant={order.status === "delivered" ? "default" : order.status === "assigned" ? "secondary" : "outline"}>
                             {order.status}
-                          </Badge>
-                          <Badge variant={order.paid ? "default" : "destructive"}>
-                            {order.paid ? "Paid" : "Unpaid"}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">{order.customer}</p>
                         <p className="text-xs text-muted-foreground">Rider: {order.rider}</p>
+                          {/* Chips row */}
+                          <div className="flex items-center gap-2 pt-1">
+                            {order.priority && (
+                              <span className={`px-2 py-0.5 text-xs rounded-md ${
+                                order.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                (order.priority === 'normal' || order.priority === 'medium') ? 'bg-green-100 text-green-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}>{order.priority}</span>
+                            )}
+                            <span className={`px-2 py-0.5 text-xs rounded-md ${order.status ==="delivered" ? 'bg-green-200 text-green-800' : 'bg-rose-100 text-rose-700'}`}>
+                              {order.status === "delivered" ? 'Paid' : 'unpaid'}
+                            </span>
+                          </div>
                       </div>
                       
                       <div className="text-right space-y-1">
                         <p className="font-medium">{order.bottles} bottles</p>
-                        <p className="text-lg font-bold">₹{order.amount}</p>
+                        <p className="text-lg font-bold">RS. {order.amount}</p>
                         <p className="text-xs text-muted-foreground">{order.date}</p>
+                        {/* Assign button for unassigned */}
+                        {order.rider === 'Not assigned' && (
+                          <div className="pt-2">
+                            <Link to={`/admin/orders/${order.originalId || order.id.replace('#','')}`}>
+                              <Badge className="cursor-pointer" variant="destructive">Assign</Badge>
+                            </Link>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

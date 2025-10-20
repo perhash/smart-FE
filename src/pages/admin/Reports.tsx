@@ -54,7 +54,7 @@ const Reports = () => {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{dailySummary.totalRevenue}</div>
+            <div className="text-2xl font-bold">RS. {dailySummary.totalRevenue}</div>
             <p className="text-xs text-muted-foreground">Today</p>
           </CardContent>
         </Card>
@@ -99,7 +99,7 @@ const Reports = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-muted-foreground">Collected</p>
-                      <p className="font-bold">₹{rider.collected}</p>
+                      <p className="font-bold">RS. {rider.collected}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -122,7 +122,7 @@ const Reports = () => {
                     <p className="font-medium">{order.orderId} - {order.customer}</p>
                     <p className="text-sm text-muted-foreground">{order.days} days overdue</p>
                   </div>
-                  <p className="text-lg font-bold">₹{order.amount}</p>
+                  <p className="text-lg font-bold">RS. {order.amount}</p>
                 </CardContent>
               </Card>
             ))}

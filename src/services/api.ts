@@ -48,9 +48,16 @@ class ApiService {
   }
 
   // Orders API
-  async getOrders(status?: string) {
-    const params = status ? `?status=${status}` : '';
-    return this.request(`${API_ENDPOINTS.ORDERS}${params}`);
+  async getOrders(params?: { status?: string; date?: string; riderId?: string; startDate?: string; endDate?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.date) searchParams.append('date', params.date);
+    if (params?.riderId) searchParams.append('riderId', params.riderId);
+    if (params?.startDate) searchParams.append('startDate', params.startDate);
+    if (params?.endDate) searchParams.append('endDate', params.endDate);
+    
+    const queryString = searchParams.toString();
+    return this.request(`${API_ENDPOINTS.ORDERS}${queryString ? `?${queryString}` : ''}`);
   }
 
   async getOrderById(id: string) {
@@ -64,10 +71,22 @@ class ApiService {
     });
   }
 
+  async searchCustomers(query: string) {
+    const q = encodeURIComponent(query);
+    return this.request(`${API_ENDPOINTS.CUSTOMERS}?q=${q}`);
+  }
+
   async updateOrderStatus(id: string, status: string, riderId?: string) {
-    return this.request(API_ENDPOINTS.ORDER_BY_ID(id), {
+    return this.request(`${API_ENDPOINTS.ORDER_BY_ID(id)}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status, riderId }),
+    });
+  }
+
+  async updateOrder(id: string, orderData: any) {
+    return this.request(API_ENDPOINTS.ORDER_BY_ID(id), {
+      method: 'PUT',
+      body: JSON.stringify(orderData),
     });
   }
 
@@ -130,6 +149,13 @@ class ApiService {
 
   async getRiderDashboard(riderId: string) {
     return this.request(API_ENDPOINTS.RIDER_DASHBOARD(riderId));
+  }
+
+  async deliverOrder(id: string, payload: { paymentAmount?: number; paymentMethod?: string; notes?: string }) {
+    return this.request(`${API_ENDPOINTS.ORDER_BY_ID(id)}/deliver`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    });
   }
 
   async createRider(riderData: any) {

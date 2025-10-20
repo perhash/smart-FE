@@ -32,7 +32,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Pending Payments",
-      value: "₹0",
+      value: "RS. 0",
       icon: DollarSign,
       trend: "Loading...",
       color: "text-destructive",
@@ -77,7 +77,7 @@ const AdminDashboard = () => {
             },
             {
               title: "Pending Payments",
-              value: `₹${statsData.pendingPayments}`,
+              value: `RS. ${statsData.pendingPayments}`,
               icon: DollarSign,
               trend: "From customers",
               color: "text-destructive",
@@ -115,7 +115,7 @@ const AdminDashboard = () => {
           },
           {
             title: "Pending Payments",
-            value: "₹12,450",
+            value: "RS. 12,450",
             icon: DollarSign,
             trend: "From 23 customers",
             color: "text-destructive",
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
         ]);
         setRecentActivities([
           { id: 1, text: "New order #1234 from Ramesh Kumar", time: "2 mins ago", status: "new" },
-          { id: 2, text: "Payment received ₹500 from Priya Sharma", time: "15 mins ago", status: "success" },
+          { id: 2, text: "Payment received RS. 500 from Priya Sharma", time: "15 mins ago", status: "success" },
           { id: 3, text: "Rider Ali completed 3 deliveries", time: "1 hour ago", status: "info" },
           { id: 4, text: "New customer added: Vikram Singh", time: "2 hours ago", status: "new" },
         ]);

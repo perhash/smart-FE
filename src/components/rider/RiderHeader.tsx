@@ -9,16 +9,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { apiService } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export function RiderHeader() {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
 
-  const handleLogout = () => {
-    apiService.logout();
+  const handleLogout = async () => {
+    await logout();
     toast.success("Logged out successfully");
-    navigate('/');
+    navigate('/login');
   };
 
   return (
