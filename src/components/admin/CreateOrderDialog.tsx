@@ -36,6 +36,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [selectedRider, setSelectedRider] = useState("");
   const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [orderType, setOrderType] = useState("delivery");
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [loadingRiders, setLoadingRiders] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -108,17 +109,23 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       toast.error("Please enter valid quantity");
       return;
     }
+
+    if (orderType === 'delivery' && !selectedRider) {
+      toast.error("Please select a rider for delivery orders");
+      return;
+    }
     
     try {
       setIsCreating(true);
       const payload: any = {
-        customerId: selectedCustomer.id,
+        customerId: selectedCustomer.id === 'walkin' ? 'walkin' : selectedCustomer.id,
         numberOfBottles: parseInt(bottles),
         unitPrice: parseInt(pricePerBottle),
         notes: notes || undefined,
         priority: priority === 'high' ? 'HIGH' : priority === 'low' ? 'LOW' : 'NORMAL',
+        orderType: orderType.toUpperCase(),
       };
-      if (selectedRider) {
+      if (orderType === 'delivery' && selectedRider) {
         payload.riderId = selectedRider;
       }
       const res = await apiService.createOrder(payload);
@@ -135,6 +142,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         setSelectedRider("");
         setNotes("");
         setPriority('medium');
+        setOrderType('delivery');
         setOpen(false);
       } else {
         toast.error((res as any).message || 'Failed to create order');
@@ -165,9 +173,25 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Order Type Selection */}
+          <div className="space-y-2">
+            <Label>Order Type</Label>
+            <Select value={orderType} onValueChange={setOrderType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select order type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="delivery">Delivery</SelectItem>
+                <SelectItem value="walkin">Walk-in</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Customer Search */}
           <div className="space-y-2">
-            <Label>Search Customer (by name, phone, WhatsApp, or house number)</Label>
+            <Label>
+              Search Customer {orderType === 'walkin' ? '(or select Walk-in Customer for unknown customers)' : '(by name, phone, WhatsApp, or house number)'}
+            </Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -186,7 +210,33 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 {loadingCustomers ? (
                   <p className="p-3 text-sm text-muted-foreground">Searching...</p>
                 ) : filteredCustomers.length > 0 ? (
-                  filteredCustomers.map((customer) => (
+                  <>
+                    {/* Walk-in Customer Option for Walk-in Orders */}
+                    {orderType === 'walkin' && (
+                      <div
+                        onClick={() => {
+                          setSelectedCustomer({
+                            id: 'walkin',
+                            name: 'Walk-in Customer',
+                            phone: '000-000-0000',
+                            currentBalance: 0
+                          });
+                          setSearchQuery("");
+                        }}
+                        className="p-3 hover:bg-muted cursor-pointer border-b bg-blue-50"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-blue-700">Walk-in Customer</p>
+                            <p className="text-sm text-blue-600">For unknown customers</p>
+                          </div>
+                          <Badge variant="outline" className="bg-blue-100 text-blue-700">
+                            Generic
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+                    {filteredCustomers.map((customer) => (
                     <div
                       key={customer.id}
                       onClick={() => {
@@ -343,27 +393,29 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             </div>
           )}
 
-          {/* Rider Assignment */}
-          <div className="space-y-2">
-            <Label htmlFor="rider">Assign Rider (optional)</Label>
-            <Select value={selectedRider} onValueChange={setSelectedRider}>
-              <SelectTrigger id="rider">
-                <SelectValue placeholder={loadingRiders ? 'Loading riders...' : 'Select a rider'} />
-              </SelectTrigger>
-              <SelectContent>
-                {riders.map((rider: any) => (
-                  <SelectItem key={rider.id} value={rider.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{rider.name}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {rider.isActive ? 'active' : 'inactive'}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Rider Assignment - Only for Delivery Orders */}
+          {orderType === 'delivery' && (
+            <div className="space-y-2">
+              <Label htmlFor="rider">Assign Rider (required for delivery)</Label>
+              <Select value={selectedRider} onValueChange={setSelectedRider}>
+                <SelectTrigger id="rider">
+                  <SelectValue placeholder={loadingRiders ? 'Loading riders...' : 'Select a rider'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {riders.map((rider: any) => (
+                    <SelectItem key={rider.id} value={rider.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{rider.name}</span>
+                        <Badge variant="outline" className="ml-auto">
+                          {rider.isActive ? 'active' : 'inactive'}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Priority */}
           <div className="space-y-2">

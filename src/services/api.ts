@@ -164,6 +164,13 @@ class ApiService {
     });
   }
 
+  async completeWalkInOrder(id: string, payload: { paymentAmount?: number; paymentMethod?: string; notes?: string }) {
+    return this.request(`${API_ENDPOINTS.ORDER_BY_ID(id)}/complete-walkin`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    });
+  }
+
   async createRider(riderData: any) {
     return this.request(API_ENDPOINTS.RIDERS, {
       method: 'POST',
