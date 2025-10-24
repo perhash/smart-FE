@@ -10,7 +10,7 @@ export const ErrorTest = () => {
   const createTestCustomer = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/test-customer', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}/test-customer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -31,7 +31,7 @@ export const ErrorTest = () => {
   const testDuplicateError = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/test-duplicate', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}/test-duplicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });

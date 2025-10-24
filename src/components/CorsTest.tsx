@@ -15,7 +15,7 @@ export function CorsTest() {
     setResult(null);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/cors-test`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}/cors-test`);
       const data = await response.json();
       
       if (response.ok) {
@@ -36,7 +36,7 @@ export function CorsTest() {
     setResult(null);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/test`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}/test`);
       const data = await response.json();
       
       if (response.ok) {
@@ -108,7 +108,7 @@ export function CorsTest() {
         )}
 
         <div className="text-sm text-muted-foreground">
-          <p><strong>Current API URL:</strong> {import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}</p>
+          <p><strong>Current API URL:</strong> {import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}</p>
           <p><strong>Frontend Origin:</strong> {window.location.origin}</p>
         </div>
       </CardContent>

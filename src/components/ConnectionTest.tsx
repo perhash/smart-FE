@@ -113,9 +113,9 @@ export const ConnectionTest = () => {
 
         <div className="text-sm text-muted-foreground">
           <p><strong>Expected URLs:</strong></p>
-          <p>• Backend: <code>http://localhost:5000</code></p>
-          <p>• Test endpoint: <code>http://localhost:5000/api/test</code></p>
-          <p>• Health check: <code>http://localhost:5000/api/health</code></p>
+          <p>• Backend: <code>{import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}</code></p>
+          <p>• Test endpoint: <code>{import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}/test</code></p>
+          <p>• Health check: <code>{import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_DEV_API_URL || 'http://localhost:5000/api'}/health</code></p>
         </div>
       </CardContent>
     </Card>

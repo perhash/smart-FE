@@ -9,7 +9,33 @@ export const getApiBaseUrl = (): string => {
     return import.meta.env.VITE_API_BASE_URL;
   }
   
-  // Fallback to localhost for development
+  // Check if we're in production (Vercel)
+  if (import.meta.env.PROD) {
+    // In production, try to construct the API URL
+    const vercelUrl = import.meta.env.VITE_VERCEL_URL;
+    if (vercelUrl) {
+      return `https://${vercelUrl}/api`;
+    }
+    
+    // Fallback for production - use environment variable
+    const fallbackUrl = import.meta.env.VITE_FALLBACK_API_URL;
+    if (fallbackUrl) {
+      return fallbackUrl;
+    }
+    
+    // No fallback configured
+    console.error('No API URL configured for production. Please set VITE_API_BASE_URL or VITE_FALLBACK_API_URL environment variable.');
+    throw new Error('API URL not configured for production');
+  }
+  
+  // Development fallback - use environment variable
+  const devUrl = import.meta.env.VITE_DEV_API_URL;
+  if (devUrl) {
+    return devUrl;
+  }
+  
+  // Last resort for development
+  console.warn('No development API URL configured. Please set VITE_DEV_API_URL environment variable.');
   return 'http://localhost:5000/api';
 };
 
