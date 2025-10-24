@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, TruckIcon, Package } from "lucide-react";
+import { ArrowLeft, User, TruckIcon, Package, CreditCard } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -207,6 +207,21 @@ const OrderDetail = () => {
         </CardContent>
       </Card>
 
+      {/* Walk-in Order Completion Form */}
+      {order.orderType === 'WALKIN' && order.status === 'CREATED' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Complete Walk-in Order
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WalkInCompletionForm order={order} onComplete={loadOrder} />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Delivery Timeline</CardTitle>
@@ -231,6 +246,136 @@ const OrderDetail = () => {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+// Walk-in Order Completion Form Component
+const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: () => void }) => {
+  const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [notes, setNotes] = useState("");
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  const totalAmount = order?.totalAmount ?? 0;
+  const isPayable = totalAmount < 0;
+  const isReceivable = totalAmount > 0;
+  const isClear = totalAmount === 0;
+
+  const paymentMethods = [
+    { value: "CASH", label: "Cash" },
+    { value: "CARD", label: "Card" },
+    { value: "BANK_TRANSFER", label: "Bank Transfer" },
+    { value: "JAZZCASH", label: "JazzCash" },
+    { value: "EASYPAISA", label: "EasyPaisa" },
+    { value: "NAYA_PAY", label: "Naya Pay" },
+    { value: "SADAPAY", label: "SadaPay" },
+  ];
+
+  const handleComplete = async () => {
+    try {
+      setIsCompleting(true);
+      
+      let paymentAmount = 0;
+      
+      if (isClear) {
+        paymentAmount = 0;
+      } else if (isPayable) {
+        paymentAmount = amount ? parseFloat(amount) : 0;
+        if (paymentAmount > 0) {
+          paymentAmount = -paymentAmount; // Convert to negative for refund
+        }
+      } else if (isReceivable) {
+        paymentAmount = amount ? parseFloat(amount) : 0;
+      }
+      
+      const res = await apiService.completeWalkInOrder(order.id, { 
+        paymentAmount, 
+        paymentMethod, 
+        notes: notes || undefined 
+      });
+      
+      if ((res as any)?.success) {
+        alert(`Walk-in order completed successfully!`);
+        onComplete(); // Refresh the order data
+      } else {
+        alert((res as any)?.message || 'Failed to complete walk-in order');
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Failed to complete walk-in order');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {isClear ? (
+        <div className="text-center py-4">
+          <p className="text-muted-foreground">No payment required - balance is clear</p>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              {isPayable ? "Amount to Refund" : "Amount Received"}
+            </label>
+            <input
+              type="number"
+              placeholder={isPayable ? "Enter refund amount" : "Enter amount"}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              min={isPayable ? 0 : 0}
+              max={isPayable ? Math.abs(totalAmount) : totalAmount}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {totalAmount !== 0 && (
+              <p className="text-xs text-muted-foreground">
+                {isPayable 
+                  ? `We owe customer RS. ${Math.abs(totalAmount)}. Enter refund amount (0 to ${Math.abs(totalAmount)}).`
+                  : `Total: RS. ${totalAmount}. Enter 0 to ${totalAmount} for payment.`
+                }
+              </p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Payment Method</label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((method) => (
+                  <SelectItem key={method.value} value={method.value}>
+                    {method.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notes (Optional)</label>
+            <textarea
+              placeholder="Add any notes about this payment..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        </>
+      )}
+      
+      <Button 
+        onClick={handleComplete} 
+        disabled={isCompleting}
+        className="w-full"
+        size="lg"
+      >
+        {isCompleting ? "Completing..." : isPayable ? "Refund & Complete" : isReceivable ? "Complete & Collect Payment" : "Complete Order"}
+      </Button>
     </div>
   );
 };
