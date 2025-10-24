@@ -28,12 +28,6 @@ const RiderOrderDetail = () => {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
-  
-  // Calculate if we owe customer or customer owes us
-  const totalAmount = order?.totalAmount ?? 0;
-  const isPayable = totalAmount < 0;
-  const isReceivable = totalAmount > 0;
-  const isClear = totalAmount === 0;
 
   const [order, setOrder] = useState<any>(null);
 
@@ -63,27 +57,10 @@ const RiderOrderDetail = () => {
 
   const handleDeliveryComplete = async () => {
     try {
-      let paymentAmount = 0;
-      
-      if (isClear) {
-        // No payment needed
-        paymentAmount = 0;
-      } else if (isPayable) {
-        // Refund scenario - amount should be negative
-        paymentAmount = amount ? -Math.abs(parseFloat(amount)) : totalAmount;
-      } else {
-        // Payment scenario - amount should be positive
-        paymentAmount = amount ? parseFloat(amount) : 0;
-      }
-      
+      const paymentAmount = amount ? parseFloat(amount) : 0;
       const res = await apiService.deliverOrder(id as string, { paymentAmount, paymentMethod, notes });
       if ((res as any)?.success) {
-        const message = isClear 
-          ? `Order #${(res as any).data.id.slice(-4)} delivered successfully`
-          : isPayable 
-            ? `Order #${(res as any).data.id.slice(-4)} delivered and refund of RS. ${Math.abs(paymentAmount)} processed`
-            : `Order #${(res as any).data.id.slice(-4)} delivered and payment of RS. ${paymentAmount} collected`;
-        toast.success(message);
+        toast.success(`Order #${(res as any).data.id.slice(-4)} marked delivered`);
         navigate("/rider");
       } else {
         toast.error((res as any)?.message || 'Failed to mark delivered');
@@ -208,68 +185,48 @@ const RiderOrderDetail = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            {isPayable ? "Refund Details" : isReceivable ? "Payment Details" : "Delivery Details"}
-          </CardTitle>
+          <CardTitle>Payment Details (Optional)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isClear ? (
-            <div className="text-center py-4">
-              <p className="text-lg font-medium text-green-600">No payment required</p>
-              <p className="text-sm text-muted-foreground">Order is already settled</p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="amount">
-                  {isPayable ? "Amount to Refund" : "Amount Received"}
-                </Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder={isPayable ? "Enter refund amount" : "Enter amount received"}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  min={isPayable ? totalAmount : 0}
-                  max={isPayable ? 0 : totalAmount}
-                />
-                {order && (
-                  <p className="text-xs text-muted-foreground">
-                    {isPayable 
-                      ? `We owe customer RS. ${Math.abs(totalAmount)}. Enter 0 to ${Math.abs(totalAmount)} for refund amount.`
-                      : `Total: RS. ${totalAmount}. Enter 0 to ${totalAmount} for payment amount.`
-                    }
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod">
-                  {isPayable ? "Refund Method" : "Payment Method"}
-                </Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select ${isPayable ? 'refund' : 'payment'} method`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentMethods.map((method) => (
-                      <SelectItem key={method.value} value={method.value}>
-                        {method.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  placeholder={`Add any notes about the ${isPayable ? 'refund' : 'delivery'}`}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-            </>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount Received</Label>
+            <Input
+              id="amount"
+              type="number"
+              placeholder="Enter amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+            {order && (
+              <p className="text-xs text-muted-foreground">
+                Total: RS. {order.totalAmount}. Enter less than total for Partial, equal for Paid, more for Overpaid, 0 for Not Paid.
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="paymentMethod">Payment Method</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((method) => (
+                  <SelectItem key={method.value} value={method.value}>
+                    {method.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              placeholder="Add any notes about the delivery"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -277,25 +234,20 @@ const RiderOrderDetail = () => {
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button className="w-full" size="lg" variant="default">
-              {isClear ? "Deliver (No Payment)" : isPayable ? "Deliver & Process Refund" : "Deliver & Collect Payment"}
+              Deliver
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Delivery</AlertDialogTitle>
               <AlertDialogDescription>
-                {isClear 
-                  ? `Mark order #${order.id.slice(-4)} as delivered? No payment required.`
-                  : isPayable 
-                    ? `Mark order #${order.id.slice(-4)} as delivered and process refund of RS. ${amount || Math.abs(totalAmount)}?`
-                    : `Mark order #${order.id.slice(-4)} as delivered and collect payment of RS. ${amount || totalAmount}?`
-                }
+                Mark order #{order.id.slice(-4)} as delivered? Payment status will be determined by the amount entered above.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeliveryComplete}>
-                {isClear ? "Confirm Delivery" : isPayable ? "Confirm Refund" : "Confirm Payment"}
+                Confirm Delivery
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
