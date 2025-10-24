@@ -19,16 +19,24 @@ const OrderDetail = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log('Fetching order with ID:', id);
         const [orderRes, ridersRes] = await Promise.all([
           apiService.getOrderById(id as string) as any,
           apiService.getRiders() as any,
         ]);
+        console.log('Order response:', orderRes);
+        console.log('Riders response:', ridersRes);
         if (orderRes?.success) {
           setOrder(orderRes.data);
+          console.log('Order set:', orderRes.data);
+        } else {
+          console.error('Order fetch failed:', orderRes);
         }
         if (ridersRes?.success) {
           setRiders(ridersRes.data);
         }
+      } catch (error) {
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
@@ -56,8 +64,33 @@ const OrderDetail = () => {
     { status: "Delivered", time: "-", completed: false },
   ];
 
-  if (loading || !order) {
+  if (loading) {
     return <div>Loading...</div>;
+  }
+
+  if (!order) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to="/admin/orders">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">Order Not Found</h1>
+            <p className="text-muted-foreground">Order with ID {id} could not be found</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-center text-muted-foreground">
+              The order you're looking for doesn't exist or you don't have permission to view it.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
