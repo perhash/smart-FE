@@ -158,6 +158,12 @@ class ApiService {
     });
   }
 
+  async cancelOrder(id: string) {
+    return this.request(`${API_ENDPOINTS.ORDER_BY_ID(id)}/cancel`, {
+      method: 'POST',
+    });
+  }
+
   async createRider(riderData: any) {
     return this.request(API_ENDPOINTS.RIDERS, {
       method: 'POST',

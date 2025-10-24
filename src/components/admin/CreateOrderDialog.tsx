@@ -109,14 +109,12 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       return;
     }
     
-    const totalAmount = parseInt(bottles) * parseInt(pricePerBottle);
-
     try {
       setIsCreating(true);
       const payload: any = {
         customerId: selectedCustomer.id,
         numberOfBottles: parseInt(bottles),
-        totalAmount,
+        unitPrice: parseInt(pricePerBottle),
         notes: notes || undefined,
         priority: priority === 'high' ? 'HIGH' : priority === 'low' ? 'LOW' : 'NORMAL',
       };
@@ -125,6 +123,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       }
       const res = await apiService.createOrder(payload);
       if ((res as any).success) {
+        const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
+        const customerBalance = selectedCustomer.currentBalance ?? 0;
+        const totalAmount = currentOrderAmount + customerBalance;
         toast.success(`Order created successfully! Total: RS. ${totalAmount}`);
         // Reset form
         setSelectedCustomer(null);

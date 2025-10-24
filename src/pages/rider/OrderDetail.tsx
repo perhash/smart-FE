@@ -55,7 +55,7 @@ const RiderOrderDetail = () => {
     load();
   }, [id]);
 
-  const handleDeliveryComplete = async (status: "paid" | "unpaid" | "overpaid" | "partial") => {
+  const handleDeliveryComplete = async () => {
     try {
       const paymentAmount = amount ? parseFloat(amount) : 0;
       const res = await apiService.deliverOrder(id as string, { paymentAmount, paymentMethod, notes });
@@ -67,6 +67,20 @@ const RiderOrderDetail = () => {
       }
     } catch (e: any) {
       toast.error(e?.message || 'Failed to mark delivered');
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    try {
+      const res = await apiService.cancelOrder(id as string);
+      if ((res as any)?.success) {
+        toast.success(`Order #${(res as any).data.id.slice(-4)} cancelled`);
+        navigate("/rider");
+      } else {
+        toast.error((res as any)?.message || 'Failed to cancel order');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to cancel order');
     }
   };
 
@@ -241,43 +255,21 @@ const RiderOrderDetail = () => {
       <div className="space-y-3">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button className="w-full" size="lg" variant="secondary">
-              Delivered (Partial Paid)
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Delivery</AlertDialogTitle>
-              <AlertDialogDescription>
-                Mark order #{order.id.slice(-4)} as delivered with partial payment?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeliveryComplete("partial")}>
-                Confirm
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
             <Button className="w-full" size="lg" variant="default">
-              Delivered (Paid)
+              Deliver
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Delivery</AlertDialogTitle>
               <AlertDialogDescription>
-                Mark order {order.id} as delivered and payment received?
+                Mark order #{order.id.slice(-4)} as delivered? Payment status will be determined by the amount entered above.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeliveryComplete("paid")}>
-                Confirm
+              <AlertDialogAction onClick={handleDeliveryComplete}>
+                Confirm Delivery
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -285,43 +277,21 @@ const RiderOrderDetail = () => {
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button className="w-full" size="lg" variant="outline">
-              Delivered (Not Paid)
+            <Button className="w-full" size="lg" variant="destructive">
+              Cancel Order
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Delivery</AlertDialogTitle>
+              <AlertDialogTitle>Confirm Cancellation</AlertDialogTitle>
               <AlertDialogDescription>
-                Mark order {order.id} as delivered but payment not received?
+                Are you sure you want to cancel order #{order.id.slice(-4)}? This will revert the customer's balance.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeliveryComplete("unpaid")}>
-                Confirm
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button className="w-full" size="lg" variant="secondary">
-              Delivered (Overpaid)
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Delivery</AlertDialogTitle>
-              <AlertDialogDescription>
-                Mark order {order.id} as delivered with overpayment?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeliveryComplete("overpaid")}>
-                Confirm
+              <AlertDialogAction onClick={handleCancelOrder}>
+                Confirm Cancellation
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
