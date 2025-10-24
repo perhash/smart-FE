@@ -28,14 +28,13 @@ const RiderOrderDetail = () => {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [order, setOrder] = useState<any>(null);
   
-  // Calculate if we owe customer or customer owes us
+  // Calculate if we owe customer or customer owes us (after order is loaded)
   const totalAmount = order?.totalAmount ?? 0;
   const isPayable = totalAmount < 0;
   const isReceivable = totalAmount > 0;
   const isClear = totalAmount === 0;
-
-  const [order, setOrder] = useState<any>(null);
 
   // Payment method options
   const paymentMethods = [
@@ -120,6 +119,25 @@ const RiderOrderDetail = () => {
           <div>
             <h1 className="text-2xl font-bold">Order</h1>
             <p className="text-muted-foreground">Loading order details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check to prevent rendering errors
+  if (!order.id) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to="/rider">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">Order</h1>
+            <p className="text-muted-foreground">Order data is incomplete</p>
           </div>
         </div>
       </div>
@@ -230,14 +248,14 @@ const RiderOrderDetail = () => {
                   placeholder={isPayable ? "Enter refund amount" : "Enter amount"}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  min={isPayable ? totalAmount : 0}
-                  max={isPayable ? 0 : totalAmount}
+                  min={isPayable ? 0 : 0}
+                  max={isPayable ? Math.abs(totalAmount) : totalAmount}
                 />
                 {order && totalAmount !== 0 && (
                   <p className="text-xs text-muted-foreground">
                     {isPayable 
-                      ? `We owe customer RS. ${Math.abs(totalAmount)}. Enter refund amount (0 to ${Math.abs(totalAmount)}).`
-                      : `Total: RS. ${totalAmount}. Enter 0 to ${totalAmount} for payment.`
+                      ? `We owe customer RS. ${Math.abs(totalAmount || 0)}. Enter refund amount (0 to ${Math.abs(totalAmount || 0)}).`
+                      : `Total: RS. ${totalAmount || 0}. Enter 0 to ${totalAmount || 0} for payment.`
                     }
                   </p>
                 )}
@@ -287,7 +305,7 @@ const RiderOrderDetail = () => {
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {isPayable 
-                  ? `Process refund for order #${order?.id?.slice(-4) || 'N/A'}? We owe customer RS. ${Math.abs(totalAmount)}. ${amount ? `Refund amount: RS. ${amount}` : 'No refund will be given.'}`
+                  ? `Process refund for order #${order?.id?.slice(-4) || 'N/A'}? We owe customer RS. ${Math.abs(totalAmount || 0)}. ${amount ? `Refund amount: RS. ${amount}` : 'No refund will be given.'}`
                   : isReceivable
                   ? `Mark order #${order?.id?.slice(-4) || 'N/A'} as delivered? Payment status will be determined by the amount entered above.`
                   : `Mark order #${order?.id?.slice(-4) || 'N/A'} as delivered? No payment required.`
