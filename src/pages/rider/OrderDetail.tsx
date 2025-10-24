@@ -154,53 +154,31 @@ const RiderOrderDetail = () => {
           {/* Current Order Amount */}
           <div className="flex justify-between items-center text-lg font-bold border-t pt-4">
             <span>Current Order Amount</span>
-            <span>RS. {order?.totalAmount}</span>
+            <span>RS. {order?.currentOrderAmount ?? 0}</span>
           </div>
 
           {/* Pending Balance */}
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Pending Balance</span>
             <div className="text-right">
-              <Badge variant={(order?.customer?.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
-                {(order?.customer?.currentBalance ?? 0) < 0 ? "Payable" : (order?.customer?.currentBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
+              <Badge variant={(order?.customerBalance ?? 0) < 0 ? "destructive" : "default"}>
+                {(order?.customerBalance ?? 0) < 0 ? "Payable" : (order?.customerBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
               </Badge>
               <p className="text-sm font-semibold mt-1">
-                RS. {Math.abs(order?.customer?.currentBalance ?? 0)}
+                RS. {Math.abs(order?.customerBalance ?? 0)}
               </p>
             </div>
           </div>
 
-          {/* Total for Admin Understanding */}
+          {/* Total Amount */}
           <div className="flex justify-between items-center text-xl font-bold border-t-2 border-primary pt-4 bg-primary/5 p-3 rounded-lg">
-            <span>Total for Admin</span>
+            <span>Total Amount</span>
             <span className="text-primary">
-              RS. {(() => {
-                const currentOrderAmount = order?.totalAmount ?? 0;
-                const customerBalance = order?.customer?.currentBalance ?? 0;
-                if (customerBalance < 0) {
-                  // Payable - subtract from order amount
-                  return currentOrderAmount - Math.abs(customerBalance);
-                } else if (customerBalance > 0) {
-                  // Receivable - add to order amount
-                  return currentOrderAmount + customerBalance;
-                } else {
-                  // Clear balance - no adjustment
-                  return currentOrderAmount;
-                }
-              })()}
+              RS. {order?.totalAmount ?? 0}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {(() => {
-              const customerBalance = order?.customer?.currentBalance ?? 0;
-              if (customerBalance < 0) {
-                return `Order amount minus payable balance`;
-              } else if (customerBalance > 0) {
-                return `Order amount plus receivable balance`;
-              } else {
-                return `No balance adjustment needed`;
-              }
-            })()}
+            Current order amount plus pending balance
           </p>
         </CardContent>
       </Card>
