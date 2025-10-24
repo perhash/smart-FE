@@ -237,31 +237,32 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                       </div>
                     )}
                     {filteredCustomers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      onClick={() => {
-                        setSelectedCustomer(customer);
-                        setSearchQuery("");
-                      }}
-                      className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{customer.name}</p>
-                          <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                          {customer.houseNo && (
-                            <p className="text-xs text-blue-600 font-medium">House: {customer.houseNo}</p>
-                          )}
-                          {customer.address && (
-                            <p className="text-xs text-muted-foreground">{customer.address}</p>
-                          )}
+                      <div
+                        key={customer.id}
+                        onClick={() => {
+                          setSelectedCustomer(customer);
+                          setSearchQuery("");
+                        }}
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{customer.name}</p>
+                            <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                            {customer.houseNo && (
+                              <p className="text-xs text-blue-600 font-medium">House: {customer.houseNo}</p>
+                            )}
+                            {customer.address && (
+                              <p className="text-xs text-muted-foreground">{customer.address}</p>
+                            )}
+                          </div>
+                          <Badge variant={(customer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
+                            {(customer.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(customer.currentBalance)}` : (customer.currentBalance ?? 0) > 0 ? `Receivable RS. ${customer.currentBalance}` : 'Clear'}
+                          </Badge>
                         </div>
-                        <Badge variant={(customer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
-                          {(customer.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(customer.currentBalance)}` : (customer.currentBalance ?? 0) > 0 ? `Receivable RS. ${customer.currentBalance}` : 'Clear'}
-                        </Badge>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </>
                 ) : (
                   <p className="p-3 text-sm text-muted-foreground">No customers found</p>
                 )}
