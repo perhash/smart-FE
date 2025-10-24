@@ -28,6 +28,12 @@ const RiderOrderDetail = () => {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
+  
+  // Calculate if we owe customer or customer owes us
+  const totalAmount = order?.totalAmount ?? 0;
+  const isPayable = totalAmount < 0;
+  const isReceivable = totalAmount > 0;
+  const isClear = totalAmount === 0;
 
   const [order, setOrder] = useState<any>(null);
 
@@ -57,16 +63,33 @@ const RiderOrderDetail = () => {
 
   const handleDeliveryComplete = async () => {
     try {
-      const paymentAmount = amount ? parseFloat(amount) : 0;
+      let paymentAmount = 0;
+      
+      // Handle different scenarios
+      if (isClear) {
+        // No payment needed
+        paymentAmount = 0;
+      } else if (isPayable) {
+        // We owe customer - amount should be negative (refund)
+        paymentAmount = amount ? parseFloat(amount) : 0;
+        if (paymentAmount > 0) {
+          paymentAmount = -paymentAmount; // Convert to negative for refund
+        }
+      } else if (isReceivable) {
+        // Customer owes us - amount should be positive
+        paymentAmount = amount ? parseFloat(amount) : 0;
+      }
+      
       const res = await apiService.deliverOrder(id as string, { paymentAmount, paymentMethod, notes });
       if ((res as any)?.success) {
-        toast.success(`Order #${(res as any).data.id.slice(-4)} marked delivered`);
+        const action = isPayable ? 'refunded' : 'delivered';
+        toast.success(`Order #${(res as any).data.id.slice(-4)} ${action}`);
         navigate("/rider");
       } else {
-        toast.error((res as any)?.message || 'Failed to mark delivered');
+        toast.error((res as any)?.message || 'Failed to process delivery');
       }
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to mark delivered');
+      toast.error(e?.message || 'Failed to process delivery');
     }
   };
 
@@ -185,39 +208,58 @@ const RiderOrderDetail = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Payment Details (Optional)</CardTitle>
+          <CardTitle>
+            {isPayable ? "Refund Details" : isReceivable ? "Payment Details" : "Delivery Details"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount Received</Label>
-            <Input
-              id="amount"
-              type="number"
-              placeholder="Enter amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-            {order && (
-              <p className="text-xs text-muted-foreground">
-                Total: RS. {order.totalAmount}. Enter less than total for Partial, equal for Paid, more for Overpaid, 0 for Not Paid.
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="paymentMethod">Payment Method</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((method) => (
-                  <SelectItem key={method.value} value={method.value}>
-                    {method.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isClear ? (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground">No payment required - balance is clear</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="amount">
+                  {isPayable ? "Amount to Refund" : "Amount Received"}
+                </Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder={isPayable ? "Enter refund amount" : "Enter amount"}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min={isPayable ? totalAmount : 0}
+                  max={isPayable ? 0 : totalAmount}
+                />
+                {order && totalAmount !== 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {isPayable 
+                      ? `We owe customer RS. ${Math.abs(totalAmount)}. Enter refund amount (0 to ${Math.abs(totalAmount)}).`
+                      : `Total: RS. ${totalAmount}. Enter 0 to ${totalAmount} for payment.`
+                    }
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paymentMethod">
+                  {isPayable ? "Refund Method" : "Payment Method"}
+                </Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Select ${isPayable ? 'refund' : 'payment'} method`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method.value} value={method.value}>
+                        {method.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
@@ -234,20 +276,27 @@ const RiderOrderDetail = () => {
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button className="w-full" size="lg" variant="default">
-              Deliver
+              {isPayable ? "Deliver & Process Refund" : isReceivable ? "Deliver & Collect Payment" : "Deliver (No Payment)"}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Delivery</AlertDialogTitle>
+              <AlertDialogTitle>
+                {isPayable ? "Confirm Refund" : "Confirm Delivery"}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Mark order #{order.id.slice(-4)} as delivered? Payment status will be determined by the amount entered above.
+                {isPayable 
+                  ? `Process refund for order #${order?.id?.slice(-4) || 'N/A'}? We owe customer RS. ${Math.abs(totalAmount)}.`
+                  : isReceivable
+                  ? `Mark order #${order?.id?.slice(-4) || 'N/A'} as delivered? Payment status will be determined by the amount entered above.`
+                  : `Mark order #${order?.id?.slice(-4) || 'N/A'} as delivered? No payment required.`
+                }
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeliveryComplete}>
-                Confirm Delivery
+                {isPayable ? "Confirm Refund" : "Confirm Delivery"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
