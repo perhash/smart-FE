@@ -76,7 +76,11 @@ const OrderDetail = () => {
           <Badge variant={order.status === "delivered" ? "default" : "secondary"}>
             {order.status}
           </Badge>
-          <Badge variant={order.paymentStatus === "paid" ? "default" : "destructive"}>
+          <Badge variant={
+            order.paymentStatus === "paid" ? "default" : 
+            order.paymentStatus === "refund" ? "secondary" : 
+            "destructive"
+          }>
             {order.paymentStatus}
           </Badge>
         </div>
