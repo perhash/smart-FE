@@ -44,6 +44,18 @@ const OrderDetail = () => {
     fetchData();
   }, [id]);
 
+  const loadOrder = async () => {
+    try {
+      const orderRes = await apiService.getOrderById(id as string) as any;
+      if (orderRes?.success) {
+        setOrder(orderRes.data);
+        console.log('Order reloaded:', orderRes.data);
+      }
+    } catch (error) {
+      console.error('Error reloading order:', error);
+    }
+  };
+
   const handleAssign = async () => {
     if (!selectedRider) return;
     try {
