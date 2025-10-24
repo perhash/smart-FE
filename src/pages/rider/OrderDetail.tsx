@@ -70,11 +70,12 @@ const RiderOrderDetail = () => {
         // No payment needed
         paymentAmount = 0;
       } else if (isPayable) {
-        // We owe customer - amount should be negative (refund)
+        // We owe customer - convert positive amount to negative (refund)
         paymentAmount = amount ? parseFloat(amount) : 0;
         if (paymentAmount > 0) {
           paymentAmount = -paymentAmount; // Convert to negative for refund
         }
+        // If amount is 0 or negative, keep as is
       } else if (isReceivable) {
         // Customer owes us - amount should be positive
         paymentAmount = amount ? parseFloat(amount) : 0;
@@ -276,7 +277,7 @@ const RiderOrderDetail = () => {
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button className="w-full" size="lg" variant="default">
-              {isPayable ? "Deliver & Process Refund" : isReceivable ? "Deliver & Collect Payment" : "Deliver (No Payment)"}
+              {isPayable ? "Refund & Deliver" : isReceivable ? "Deliver & Collect Payment" : "Deliver (No Payment)"}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -286,7 +287,7 @@ const RiderOrderDetail = () => {
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {isPayable 
-                  ? `Process refund for order #${order?.id?.slice(-4) || 'N/A'}? We owe customer RS. ${Math.abs(totalAmount)}.`
+                  ? `Process refund for order #${order?.id?.slice(-4) || 'N/A'}? We owe customer RS. ${Math.abs(totalAmount)}. ${amount ? `Refund amount: RS. ${amount}` : 'No refund will be given.'}`
                   : isReceivable
                   ? `Mark order #${order?.id?.slice(-4) || 'N/A'} as delivered? Payment status will be determined by the amount entered above.`
                   : `Mark order #${order?.id?.slice(-4) || 'N/A'} as delivered? No payment required.`
