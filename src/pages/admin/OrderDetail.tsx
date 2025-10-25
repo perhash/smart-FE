@@ -105,6 +105,15 @@ const OrderDetail = () => {
     );
   }
 
+  // Debug logging for order data
+  console.log('OrderDetail - Order data:', {
+    id: order.id,
+    orderType: order.orderType,
+    status: order.status,
+    customer: order.customer,
+    totalAmount: order.totalAmount
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -253,7 +262,8 @@ const OrderDetail = () => {
       </Card>
 
       {/* Walk-in Order Completion Form */}
-      {order.orderType === 'WALKIN' && (
+      {console.log('Order Type Check:', order?.orderType, 'Is WALKIN:', order?.orderType === 'WALKIN')}
+      {order?.orderType === 'WALKIN' && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -297,6 +307,8 @@ const OrderDetail = () => {
 
 // Walk-in Order Completion Form Component
 const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: () => void }) => {
+  console.log('WalkInCompletionForm rendered with order:', order);
+  
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [notes, setNotes] = useState("");
