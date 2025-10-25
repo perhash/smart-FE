@@ -306,6 +306,15 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
   const isPayable = totalAmount < 0;
   const isReceivable = totalAmount > 0;
   const isClear = totalAmount === 0;
+  
+  // Check if this is a walk-in order with unknown customer (Walk-in Customer)
+  const isWalkInUnknown = order?.orderType === 'WALKIN' && order?.customer?.name === 'Walk-in Customer';
+  
+  // For walk-in unknown customers, require exact payment
+  const requiresFullPayment = isWalkInUnknown && !isClear;
+  const paidAmount = parseFloat(amount) || 0;
+  const isPaymentValid = !requiresFullPayment || (paidAmount === totalAmount);
+  const hasPaymentError = requiresFullPayment && amount !== "" && !isPaymentValid;
 
   const paymentMethods = [
     { value: "CASH", label: "Cash" },
@@ -318,6 +327,11 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
   ];
 
   const handleComplete = async () => {
+    // Prevent submission if payment validation fails
+    if (hasPaymentError || (requiresFullPayment && !isPaymentValid)) {
+      return;
+    }
+    
     try {
       setIsCompleting(true);
       
@@ -361,24 +375,51 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
         </div>
       ) : (
         <>
+          {/* Full Payment Requirement Message */}
+          {requiresFullPayment && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm font-medium text-amber-800">
+                ⚠️ Full payment required for walk-in customers
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                You must collect the exact total amount: RS. {totalAmount}
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <label className="text-sm font-medium">
               {isPayable ? "Amount to Refund" : "Amount Received"}
             </label>
             <input
               type="number"
-              placeholder={isPayable ? "Enter refund amount" : "Enter amount"}
+              placeholder={isPayable ? "Enter refund amount" : requiresFullPayment ? `Enter ${totalAmount}` : "Enter amount"}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               min={isPayable ? 0 : 0}
               max={isPayable ? Math.abs(totalAmount) : totalAmount}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                hasPaymentError 
+                  ? 'border-red-300 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
-            {totalAmount !== 0 && (
+            
+            {/* Error Message */}
+            {hasPaymentError && (
+              <p className="text-xs text-red-600 font-medium">
+                ❌ Payment must equal total amount (RS. {totalAmount})
+              </p>
+            )}
+            
+            {/* Help Text */}
+            {totalAmount !== 0 && !hasPaymentError && (
               <p className="text-xs text-muted-foreground">
                 {isPayable 
                   ? `We owe customer RS. ${Math.abs(totalAmount)}. Enter refund amount (0 to ${Math.abs(totalAmount)}).`
-                  : `Total: RS. ${totalAmount}. Enter 0 to ${totalAmount} for payment.`
+                  : requiresFullPayment
+                    ? `Total: RS. ${totalAmount}. Enter exactly ${totalAmount} for payment.`
+                    : `Total: RS. ${totalAmount}. Enter 0 to ${totalAmount} for payment.`
                 }
               </p>
             )}
@@ -415,11 +456,20 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
       
       <Button 
         onClick={handleComplete} 
-        disabled={isCompleting}
+        disabled={isCompleting || (requiresFullPayment && !isPaymentValid)}
         className="w-full"
         size="lg"
       >
-        {isCompleting ? "Completing..." : isPayable ? "Refund & Complete" : isReceivable ? "Complete & Collect Payment" : "Complete Order"}
+        {isCompleting 
+          ? "Completing..." 
+          : requiresFullPayment && !isPaymentValid
+            ? "Enter exact payment amount"
+            : isPayable 
+              ? "Refund & Complete" 
+              : isReceivable 
+                ? "Complete & Collect Payment" 
+                : "Complete Order"
+        }
       </Button>
     </div>
   );
