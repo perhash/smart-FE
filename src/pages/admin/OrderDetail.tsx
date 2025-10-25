@@ -307,15 +307,26 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
   const isReceivable = totalAmount > 0;
   const isClear = totalAmount === 0;
   
-  // Check if this is a walk-in order with unknown customer (Walk-in Customer)
-  const isWalkInUnknown = order?.orderType === 'WALKIN' && order?.customer?.name === 'Walk-in Customer';
+  // Check if this is a walk-in order with unknown customer
+  // Check for various possible names for walk-in customer
+  const walkInCustomerNames = ['Walk-in Customer', 'Walk-in', 'Unknown Customer', 'Walk In Customer'];
+  const walkInCustomerPhones = ['000-000-0000', '0000000000', 'walkin', 'unknown'];
+  
+  const isWalkInUnknown = order?.orderType === 'WALKIN' && (
+    walkInCustomerNames.some(name => order?.customer?.name === name) ||
+    walkInCustomerPhones.some(phone => order?.customer?.phone === phone)
+  );
   
   // Debug logging
   console.log('Order Debug:', {
     orderType: order?.orderType,
     customerName: order?.customer?.name,
+    customerPhone: order?.customer?.phone,
+    customerId: order?.customer?.id,
     isWalkInUnknown,
-    totalAmount
+    totalAmount,
+    walkInCustomerNames,
+    walkInCustomerPhones
   });
   
   // For walk-in unknown customers, require exact payment
