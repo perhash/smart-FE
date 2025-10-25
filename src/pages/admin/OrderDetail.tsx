@@ -310,6 +310,14 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
   // Check if this is a walk-in order with unknown customer (Walk-in Customer)
   const isWalkInUnknown = order?.orderType === 'WALKIN' && order?.customer?.name === 'Walk-in Customer';
   
+  // Debug logging
+  console.log('Order Debug:', {
+    orderType: order?.orderType,
+    customerName: order?.customer?.name,
+    isWalkInUnknown,
+    totalAmount
+  });
+  
   // For walk-in unknown customers, require exact payment
   const requiresFullPayment = isWalkInUnknown;
   const paidAmount = parseFloat(amount) || 0;
