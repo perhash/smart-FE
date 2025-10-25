@@ -253,12 +253,12 @@ const OrderDetail = () => {
       </Card>
 
       {/* Walk-in Order Completion Form */}
-      {order.orderType === 'WALKIN' && order.status === 'CREATED' && (
+      {order.orderType === 'WALKIN' && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Complete Walk-in Order
+              {order.status === 'CREATED' ? 'Complete Walk-in Order' : 'Walk-in Order Payment'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -311,7 +311,7 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
   const isWalkInUnknown = order?.orderType === 'WALKIN' && order?.customer?.name === 'Walk-in Customer';
   
   // For walk-in unknown customers, require exact payment
-  const requiresFullPayment = isWalkInUnknown && !isClear;
+  const requiresFullPayment = isWalkInUnknown;
   const paidAmount = parseFloat(amount) || 0;
   const isPaymentValid = !requiresFullPayment || (paidAmount === totalAmount);
   const hasPaymentError = requiresFullPayment && amount !== "" && !isPaymentValid;
@@ -369,7 +369,8 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
 
   return (
     <div className="space-y-4">
-      {isClear ? (
+      {/* Show payment section for walk-in unknown customers even if balance is clear */}
+      {isClear && !isWalkInUnknown ? (
         <div className="text-center py-4">
           <p className="text-muted-foreground">No payment required - balance is clear</p>
         </div>
@@ -413,7 +414,7 @@ const WalkInCompletionForm = ({ order, onComplete }: { order: any; onComplete: (
             )}
             
             {/* Help Text */}
-            {totalAmount !== 0 && !hasPaymentError && (
+            {!hasPaymentError && (
               <p className="text-xs text-muted-foreground">
                 {isPayable 
                   ? `We owe customer RS. ${Math.abs(totalAmount)}. Enter refund amount (0 to ${Math.abs(totalAmount)}).`
