@@ -19,9 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Loader2 } from "lucide-react";
+import { Search, Plus, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
 
 interface CreateOrderDialogProps {
   trigger?: React.ReactNode;
@@ -76,6 +83,13 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     }
   }, [open]);
 
+  // Clear payment amount when switching away from walk-in or changing customer
+  useEffect(() => {
+    if (orderType !== 'walkin' || !selectedCustomer) {
+      setPaymentAmount("");
+    }
+  }, [orderType, selectedCustomer]);
+
   // Debounced customer search
   useEffect(() => {
     const handler = setTimeout(async () => {
@@ -101,6 +115,38 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   }, [searchQuery]);
 
   const filteredCustomers = customerResults;
+
+  // Check if selected customer is unknown walk-in customer
+  const isUnknownWalkInCustomer = selectedCustomer && 
+    (selectedCustomer.name === 'Walk-in Customer' || 
+     selectedCustomer.phone === '000-000-0000');
+
+  // Auto-calculate payment amount for walk-in orders
+  useEffect(() => {
+    if (orderType === 'walkin' && selectedCustomer && bottles && pricePerBottle) {
+      const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
+      const customerBalance = selectedCustomer.currentBalance ?? 0;
+      
+      let totalAmount;
+      
+      // Calculate total with balance adjustments
+      if (customerBalance < 0) {
+        // Payable - subtract from order amount
+        totalAmount = Math.max(0, currentOrderAmount - Math.abs(customerBalance));
+      } else if (customerBalance > 0) {
+        // Receivable - add to order amount
+        totalAmount = currentOrderAmount + customerBalance;
+      } else {
+        // Clear balance
+        totalAmount = currentOrderAmount;
+      }
+      
+      // Only update if we have a valid number
+      if (!isNaN(totalAmount) && isFinite(totalAmount)) {
+        setPaymentAmount(totalAmount.toString());
+      }
+    }
+  }, [orderType, selectedCustomer, bottles, pricePerBottle]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,16 +231,17 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Order
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <TooltipProvider>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Order
+            </Button>
+          )}
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Order</DialogTitle>
           <DialogDescription>
@@ -494,10 +541,23 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             </div>
           )}
 
-          {/* walkin customer  */}
-          {orderType === 'walkin' && (
-            <div className="space-y-4 p-4  rounded-lg border">
-              <h3 className="font-medium text-blue-900">Payment Information</h3>
+          {/* Walk-in Payment Section */}
+          {orderType === 'walkin' && selectedCustomer && bottles && pricePerBottle && (
+            <div className="space-y-4 p-4 rounded-lg border">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-blue-900">Payment Information</h3>
+                {isUnknownWalkInCustomer && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground hover:text-primary cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Walk-in unknown customer payment amount is calculated automatically and cannot be edited. To customize payment details, please add this customer to your database first.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="paymentAmount">Payment Amount</Label>
@@ -506,9 +566,17 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                     type="number"
                     placeholder="Enter amount"
                     value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    onChange={(e) => !isUnknownWalkInCustomer && setPaymentAmount(e.target.value)}
                     min="0"
+                    disabled={isUnknownWalkInCustomer}
+                    readOnly={isUnknownWalkInCustomer}
+                    className={isUnknownWalkInCustomer ? 'bg-muted cursor-not-allowed' : ''}
                   />
+                  {isUnknownWalkInCustomer && (
+                    <p className="text-xs text-muted-foreground italic">
+                      Payment amount matches total (auto-calculated)
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="paymentMethod">Payment Method</Label>
@@ -528,6 +596,23 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                   </Select>
                 </div>
               </div>
+
+              {isUnknownWalkInCustomer && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Info className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  <p className="text-sm text-blue-700 flex-1">
+                    This is the generic walk-in customer. Want to customize payment details? Add them as a customer to your database.
+                  </p>
+                  <AddCustomerDialog 
+                    trigger={
+                      <Button type="button" variant="outline" size="sm" className="flex-shrink-0">
+                        Add as Customer
+                      </Button>
+                    }
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="paymentNotes">Payment Notes (Optional)</Label>
                 <Input
@@ -583,7 +668,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 }
