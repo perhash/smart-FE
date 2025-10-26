@@ -169,9 +169,14 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                             <p className="font-medium">{customer.name}</p>
                             <p className="text-sm text-muted-foreground">{customer.phone}</p>
                           </div>
-                          <Badge variant={customer.currentBalance < 0 ? "destructive" : "default"}>
-                            {customer.currentBalance < 0 ? "Payable" : "Receivable"}
-                          </Badge>
+                          <div className="text-right">
+                            <Badge variant={customer.currentBalance < 0 ? "destructive" : "default"}>
+                              {customer.currentBalance < 0 ? "Payable" : "Receivable"}
+                            </Badge>
+                            <p className="text-sm font-semibold mt-1">
+                              RS. {Math.abs(customer.currentBalance)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     ))
