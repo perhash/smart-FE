@@ -422,12 +422,51 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
 
           {/* Remaining Balance Information */}
           <div className="rounded-lg border-2 border-primary bg-primary/10 p-4">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-lg">Remaining Balance After Payment:</span>
-              <span className="text-2xl font-bold text-primary">
-                RS. {Math.abs(parseFloat(customerBalance.toString()) - parseFloat(paymentAmount))}
-              </span>
-            </div>
+            {(() => {
+              // Calculate remaining balance correctly for both receivable and payable
+              const balance = parseFloat(customerBalance.toString());
+              const paid = parseFloat(paymentAmount);
+              let remainingBalance;
+              
+              if (isReceivable) {
+                // For receivable: subtract payment from balance
+                remainingBalance = balance - paid;
+              } else if (isPayable) {
+                // For payable: add payment to balance (because we're giving them back)
+                remainingBalance = balance + paid;
+              } else {
+                remainingBalance = 0;
+              }
+              
+              // Determine status message
+              let statusMessage;
+              let statusBadge;
+              
+              if (remainingBalance === 0) {
+                statusMessage = "Fully Cleared";
+                statusBadge = "default";
+              } else if (remainingBalance > 0) {
+                statusMessage = `${remainingBalance} Receivable Remaining`;
+                statusBadge = "default";
+              } else {
+                statusMessage = `${Math.abs(remainingBalance)} Payable Remaining`;
+                statusBadge = "destructive";
+              }
+              
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-lg">Remaining Balance After Payment:</span>
+                    <span className="text-2xl font-bold text-primary">
+                      RS. {Math.abs(remainingBalance)}
+                    </span>
+                  </div>
+                  <Badge variant={statusBadge as any} className="mt-2">
+                    {statusMessage}
+                  </Badge>
+                </>
+              );
+            })()}
           </div>
         </div>
 
