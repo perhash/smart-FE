@@ -165,11 +165,19 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                         className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                       >
                         <div className="flex items-center justify-between">
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">{customer.name}</p>
                             <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                            {customer.houseNo && (
+                              <p className="text-xs text-blue-600 font-medium">House: {customer.houseNo}</p>
+                            )}
+                            {(customer.area || customer.city) && (
+                              <p className="text-xs text-muted-foreground">
+                                {[customer.area, customer.city].filter(Boolean).join(', ')}
+                              </p>
+                            )}
                           </div>
-                          <div className="text-right">
+                          <div className="text-right ml-4">
                             <Badge variant={customer.currentBalance < 0 ? "destructive" : "default"}>
                               {customer.currentBalance < 0 ? "Payable" : "Receivable"}
                             </Badge>
