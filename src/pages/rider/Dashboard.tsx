@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Package, MapPin, Phone, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
+import { supabase } from "@/lib/supabase";
 
 interface Order {
   id: string;
@@ -30,46 +31,116 @@ const RiderDashboard = () => {
   const [assignedDeliveries, setAssignedDeliveries] = useState<Order[]>([]);
   const [completedDeliveries, setCompletedDeliveries] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<any>(null);
 
   const { user } = useAuth();
+  const riderId = (user as any)?.riderProfile?.id || (user as any)?.profile?.id;
 
+  const fetchRiderData = useCallback(async () => {
+    try {
+      setLoading(true);
+      if (!riderId) return;
+      const response = await apiService.getRiderDashboard(riderId) as any;
+      console.log('Fetched rider data:', response);
+      if (response?.success) {
+        const assigned = (response.data?.assignedDeliveries || []) as any[];
+        // Sort: high, normal, low then FIFO (by string id fallback)
+        const rank = (p?: string) => (p === 'high' ? 0 : p === 'normal' ? 1 : p === 'medium' ? 1 : 2);
+        assigned.sort((a, b) => {
+          const ar = rank(a.priority);
+          const br = rank(b.priority);
+          if (ar !== br) return ar - br;
+          return (a.id || '').localeCompare(b.id || '');
+        });
+        setAssignedDeliveries(assigned);
+        setCompletedDeliveries(response.data?.completedDeliveries || []);
+      }
+    } catch (error) {
+      console.error('Error fetching rider data:', error);
+      // Set empty arrays on error
+      setAssignedDeliveries([]);
+      setCompletedDeliveries([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [riderId]);
 
-console.log(assignedDeliveries,"assignedDeliveries");
   useEffect(() => {
-    const fetchRiderData = async () => {
-      try {
-        setLoading(true);
-        const riderId = (user as any)?.riderProfile?.id || (user as any)?.profile?.id;
-        if (!riderId) return;
-        const response = await apiService.getRiderDashboard(riderId) as any;
-        console.log(response,"response");
-        if (response?.success) {
-          const assigned = (response.data?.assignedDeliveries || []) as any[];
-          // Sort: high, normal, low then FIFO (by string id fallback)
-          const rank = (p?: string) => (p === 'high' ? 0 : p === 'normal' ? 1 : p === 'medium' ? 1 : 2);
-          assigned.sort((a, b) => {
-            const ar = rank(a.priority);
-            const br = rank(b.priority);
-            if (ar !== br) return ar - br;
-            return (a.id || '').localeCompare(b.id || '');
-          });
-          setAssignedDeliveries(assigned);
-          setCompletedDeliveries(response.data?.completedDeliveries || []);
+    console.log('🔄 useEffect running, riderId:', riderId);
+    
+    if (!riderId) {
+      console.warn('⚠️ No riderId, skipping subscription');
+      return;
+    }
+
+    // Fetch initial data
+    console.log('📥 Fetching initial rider data...');
+    fetchRiderData();
+
+    // Set up Supabase real-time subscription for this rider's orders
+    console.log('🔧 Setting up real-time subscription for rider:', riderId);
+    console.log('🌐 Supabase client URL:', supabase.supabaseUrl);
+    
+    const channelName = `rider-orders-${riderId}`;
+    console.log('📺 Creating channel:', channelName);
+    
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          console.log('🔔🔔🔔 PAYLOAD RECEIVED ON RIDER DASHBOARD! 🔔🔔🔔');
+          console.log('📦 Full Payload:', JSON.stringify(payload, null, 2));
+          console.log('📦 Event Type:', payload.eventType);
+          console.log('📦 New record:', payload.new);
+          console.log('📦 Order rider ID:', payload.new?.riderId);
+          console.log('📦 Our rider ID:', riderId);
+          
+          // Check if this order is for this rider
+          const orderRiderId = payload.new?.riderId;
+          console.log('🔍 Comparing rider IDs:', orderRiderId, '===', riderId);
+          
+          if (orderRiderId === riderId) {
+            console.log('✅ This order is for this rider - refetching data!');
+            fetchRiderData();
+          } else {
+            console.log('⏭️ Not for this rider, ignoring');
+          }
         }
-      } catch (error) {
-        console.error('Error fetching rider data:', error);
-        // Set empty arrays on error
-        setAssignedDeliveries([]);
-        setCompletedDeliveries([]);
-      } finally {
-        setLoading(false);
+      )
+      .subscribe((status) => {
+        console.log(`📡 [RIDER] Subscription status: ${status}`);
+        console.log('📡 Channel:', channelName);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [RIDER] Successfully subscribed to INSERT events on orders table!');
+          console.log('👀 [RIDER] Now waiting for new orders to be created...');
+          console.log('🔎 [RIDER] Current rider ID in subscription:', riderId);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ [RIDER] Channel error - Check Supabase Realtime settings!');
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ [RIDER] Connection timed out');
+        } else if (status === 'CLOSED') {
+          console.error('❌ [RIDER] Connection closed');
+        }
+      });
+
+    console.log('🔗 Channel reference stored');
+    channelRef.current = channel;
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('🧹 Cleaning up subscription...');
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
       }
     };
-
-    fetchRiderData();
-    const interval = setInterval(fetchRiderData, 5000);
-    return () => clearInterval(interval);
-  }, [(user as any)?.riderProfile?.id, (user as any)?.profile?.id]);
+  }, [riderId, fetchRiderData]);
 
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
@@ -11,17 +11,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiService } from "@/services/api";
+import { supabase } from "@/lib/supabase";
 
 const Orders = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await apiService.getOrders(statusFilter === "all" ? undefined : statusFilter) as any;
+        const response = await apiService.getOrders(statusFilter === "all" ? undefined : { status: statusFilter }) as any;
         if (response?.success) {
           setOrders(response.data || []);
         }
@@ -39,9 +41,47 @@ const Orders = () => {
       }
     };
 
+    // Fetch initial orders
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
+
+    // Set up Supabase real-time subscription
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          console.log('Order change detected:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            // New order added - refetch to get full order details
+            fetchOrders();
+          } else if (payload.eventType === 'UPDATE') {
+            // Order updated - refresh data
+            fetchOrders();
+          } else if (payload.eventType === 'DELETE') {
+            // Order deleted - remove from list
+            setOrders((prev) => prev.filter((order: any) => {
+              const orderId = order.originalId || order.id.replace('#', '');
+              return orderId !== payload.old.id;
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
   }, [statusFilter]);
 
   const filteredOrders = [...orders]
