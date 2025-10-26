@@ -8,6 +8,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +59,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [riders, setRiders] = useState<any[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Payment fields for walk-in orders
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -148,6 +159,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     }
   }, [orderType, selectedCustomer, bottles, pricePerBottle]);
 
+  // Handle form validation and show confirmation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -165,6 +177,14 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       toast.error("Please select a rider for delivery orders");
       return;
     }
+
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  // Actually create the order after confirmation
+  const handleConfirmSubmit = async () => {
+    setShowConfirmDialog(false);
 
     try {
       setIsCreating(true);
@@ -670,6 +690,151 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Order Details</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please review the order details before creating
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Customer Information */}
+            <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+              <h4 className="font-semibold text-lg">Customer Information</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Name:</span>
+                  <p className="font-medium">{selectedCustomer?.name}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Phone:</span>
+                  <p className="font-medium">{selectedCustomer?.phone}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Balance:</span>
+                  <Badge variant={(selectedCustomer?.currentBalance ?? 0) < 0 ? "destructive" : "default"} className="ml-2">
+                    {(selectedCustomer?.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(selectedCustomer?.currentBalance ?? 0)}` : (selectedCustomer?.currentBalance ?? 0) > 0 ? `Receivable RS. ${selectedCustomer?.currentBalance}` : 'Clear'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Order Details */}
+            <div className="rounded-lg border bg-primary/5 p-4 space-y-2">
+              <h4 className="font-semibold text-lg">Order Details</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Order Type:</span>
+                  <p className="font-medium capitalize">{orderType}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Priority:</span>
+                  <p className="font-medium capitalize">{priority}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Bottles:</span>
+                  <p className="font-medium">{bottles} bottles</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Price per Bottle:</span>
+                  <p className="font-medium">RS. {pricePerBottle}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Current Order Amount:</span>
+                  <p className="font-medium">RS. {bottles && pricePerBottle ? parseInt(bottles) * parseInt(pricePerBottle) : 0}</p>
+                </div>
+                {orderType === 'delivery' && selectedRider && (
+                  <div>
+                    <span className="text-muted-foreground">Assigned Rider:</span>
+                    <p className="font-medium">{riders.find(r => r.id === selectedRider)?.name || 'Unknown'}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Information for Walk-in */}
+              {orderType === 'walkin' && paymentAmount && (
+                <div className="mt-3 pt-3 border-t space-y-2">
+                  <h5 className="font-semibold">Payment Information</h5>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Payment Amount:</span>
+                      <p className="font-medium">RS. {paymentAmount}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Payment Method:</span>
+                      <p className="font-medium">{paymentMethod}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {notes && (
+                <div className="mt-3 pt-3 border-t">
+                  <span className="text-muted-foreground text-sm">Notes:</span>
+                  <p className="font-medium text-sm mt-1">{notes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Total Summary */}
+            {selectedCustomer && bottles && pricePerBottle && (
+              <div className="rounded-lg border-2 border-primary bg-primary/10 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-lg font-semibold">Total Amount</span>
+                  <span className="text-2xl font-bold text-primary">
+                    RS. {(() => {
+                      const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
+                      const customerBalance = selectedCustomer.currentBalance ?? 0;
+                      if (customerBalance < 0) {
+                        return currentOrderAmount - Math.abs(customerBalance);
+                      } else if (customerBalance > 0) {
+                        return currentOrderAmount + customerBalance;
+                      } else {
+                        return currentOrderAmount;
+                      }
+                    })()}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {(() => {
+                    const customerBalance = selectedCustomer.currentBalance ?? 0;
+                    if (customerBalance < 0) {
+                      return `Order amount minus payable balance`;
+                    } else if (customerBalance > 0) {
+                      return `Order amount plus receivable balance`;
+                    } else {
+                      return `No balance adjustment needed`;
+                    }
+                  })()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmSubmit}
+              disabled={isCreating}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Confirm & Create Order'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }
