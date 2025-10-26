@@ -8,6 +8,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +47,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Debounced customer search
   useEffect(() => {
@@ -62,7 +73,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const handleClearBill = async (e: React.FormEvent) => {
+  const handleClearBill = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedCustomer) {
@@ -74,6 +85,13 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
       toast.error("Please enter a valid amount");
       return;
     }
+
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmClear = async () => {
+    setShowConfirmDialog(false);
 
     try {
       setIsClearing(true);
@@ -114,6 +132,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
   const hasBill = customerBalance !== 0;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
@@ -319,6 +338,119 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation Dialog */}
+    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm Clear Bill</AlertDialogTitle>
+          <AlertDialogDescription>
+            Please review the bill clearing details before confirming
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-4 py-4">
+          {/* Customer Information */}
+          <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+            <h4 className="font-semibold text-lg">Customer Information</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Name:</span>
+                <p className="font-medium">{selectedCustomer?.name}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Phone:</span>
+                <p className="font-medium">{selectedCustomer?.phone}</p>
+              </div>
+              {selectedCustomer?.houseNo && (
+                <div>
+                  <span className="text-muted-foreground">House No:</span>
+                  <p className="font-medium">{selectedCustomer.houseNo}</p>
+                </div>
+              )}
+              {(selectedCustomer?.area || selectedCustomer?.city) && (
+                <div>
+                  <span className="text-muted-foreground">Location:</span>
+                  <p className="font-medium">
+                    {[selectedCustomer.area, selectedCustomer.city].filter(Boolean).join(', ')}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bill Information */}
+          <div className="rounded-lg border bg-primary/5 p-4 space-y-2">
+            <h4 className="font-semibold text-lg">Bill Information</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Outstanding Bill Type:</span>
+                <Badge 
+                  variant={customerBalance < 0 ? "destructive" : "default"} 
+                  className="ml-2"
+                >
+                  {isReceivable ? "Receivable" : isPayable ? "Payable" : "Clear"}
+                </Badge>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Outstanding Amount:</span>
+                <p className="font-bold text-lg">RS. {Math.abs(customerBalance)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Information */}
+          <div className="rounded-lg border bg-blue-50 p-4 space-y-2">
+            <h4 className="font-semibold text-lg">Payment Information</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Payment Amount:</span>
+                <p className="font-bold text-lg">RS. {paymentAmount}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Payment Method:</span>
+                <p className="font-medium">{paymentMethod}</p>
+              </div>
+              {paymentNotes && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Payment Notes:</span>
+                  <p className="font-medium">{paymentNotes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Remaining Balance Information */}
+          <div className="rounded-lg border-2 border-primary bg-primary/10 p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-lg">Remaining Balance After Payment:</span>
+              <span className="text-2xl font-bold text-primary">
+                RS. {Math.abs(parseFloat(customerBalance.toString()) - parseFloat(paymentAmount))}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isClearing}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirmClear}
+            disabled={isClearing}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {isClearing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Clearing...
+              </>
+            ) : (
+              'Confirm & Clear Bill'
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
