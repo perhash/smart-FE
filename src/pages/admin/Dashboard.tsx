@@ -4,6 +4,7 @@ import { Users, TruckIcon, Package, DollarSign, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreateOrderDialog } from "@/components/admin/CreateOrderDialog";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
+import { ClearBillDialog } from "@/components/admin/ClearBillDialog";
 import { apiService } from "@/services/api";
 import { useEffect, useState } from "react";
 
@@ -145,6 +146,7 @@ const AdminDashboard = () => {
         
         <div className="flex flex-wrap gap-2">
           <CreateOrderDialog />
+          <ClearBillDialog />
           <AddCustomerDialog trigger={
             <Button variant="outline">
               <Plus className="mr-2 h-4 w-4" />

@@ -71,6 +71,13 @@ class ApiService {
     });
   }
 
+  async clearBill(billData: any) {
+    return this.request(`${API_ENDPOINTS.ORDERS}/clear-bill`, {
+      method: 'POST',
+      body: JSON.stringify(billData),
+    });
+  }
+
   async searchCustomers(query: string) {
     const q = encodeURIComponent(query);
     return this.request(`${API_ENDPOINTS.CUSTOMERS}?q=${q}`);
