@@ -42,7 +42,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [riders, setRiders] = useState<any[]>([]);
-  
+
   // Payment fields for walk-in orders
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
@@ -104,17 +104,17 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedCustomer) {
       toast.error("Please select a customer");
       return;
     }
-    
+
     if (!bottles || parseInt(bottles) <= 0) {
       toast.error("Please enter valid quantity");
       return;
     }
-    
+
     if (orderType === 'delivery' && !selectedRider) {
       toast.error("Please select a rider for delivery orders");
       return;
@@ -138,7 +138,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
         const customerBalance = selectedCustomer.currentBalance ?? 0;
         const totalAmount = currentOrderAmount + customerBalance;
-        
+
         // If it's a walk-in order and payment amount is provided, complete it immediately
         if (orderType === 'walkin' && paymentAmount) {
           try {
@@ -148,7 +148,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
               paymentMethod,
               notes: paymentNotes || undefined
             });
-            
+
             if ((completeRes as any).success) {
               toast.success(`Walk-in order created and completed! Payment: RS. ${paymentAmountNum}`);
             } else {
@@ -158,9 +158,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             toast.success(`Order created successfully! Total: RS. ${totalAmount}. Please complete payment manually.`);
           }
         } else {
-        toast.success(`Order created successfully! Total: RS. ${totalAmount}`);
+          toast.success(`Order created successfully! Total: RS. ${totalAmount}`);
         }
-        
+
         // Reset form
         setSelectedCustomer(null);
         setSearchQuery("");
@@ -218,7 +218,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
           </div>
 
           {/* Payment Fields for Walk-in Orders */}
-          {orderType === 'walkin' && (
+          {/* {orderType === 'walkin' && (
             <div className="space-y-4 p-4 bg-blue-50 rounded-lg border">
               <h3 className="font-medium text-blue-900">Payment Information</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -261,7 +261,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 />
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Customer Search */}
           <div className="space-y-2">
@@ -280,7 +280,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             <p className="text-xs text-muted-foreground">
               You can search by customer name, phone number, WhatsApp number, or house number
             </p>
-            
+
             {searchQuery && !selectedCustomer && (
               <div className="mt-2 max-h-48 overflow-y-auto border rounded-md">
                 {loadingCustomers ? (
@@ -313,30 +313,30 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                       </div>
                     )}
                     {filteredCustomers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      onClick={() => {
-                        setSelectedCustomer(customer);
-                        setSearchQuery("");
-                      }}
-                      className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{customer.name}</p>
-                          <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                          {customer.houseNo && (
-                            <p className="text-xs text-blue-600 font-medium">House: {customer.houseNo}</p>
-                          )}
-                          {customer.address && (
-                            <p className="text-xs text-muted-foreground">{customer.address}</p>
-                          )}
+                      <div
+                        key={customer.id}
+                        onClick={() => {
+                          setSelectedCustomer(customer);
+                          setSearchQuery("");
+                        }}
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{customer.name}</p>
+                            <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                            {customer.houseNo && (
+                              <p className="text-xs text-blue-600 font-medium">House: {customer.houseNo}</p>
+                            )}
+                            {customer.address && (
+                              <p className="text-xs text-muted-foreground">{customer.address}</p>
+                            )}
+                          </div>
+                          <Badge variant={(customer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
+                            {(customer.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(customer.currentBalance)}` : (customer.currentBalance ?? 0) > 0 ? `Receivable RS. ${customer.currentBalance}` : 'Clear'}
+                          </Badge>
                         </div>
-                        <Badge variant={(customer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
-                          {(customer.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(customer.currentBalance)}` : (customer.currentBalance ?? 0) > 0 ? `Receivable RS. ${customer.currentBalance}` : 'Clear'}
-                        </Badge>
                       </div>
-                    </div>
                     ))}
                   </>
                 ) : (
@@ -472,28 +472,73 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
           {/* Rider Assignment - Only for Delivery Orders */}
           {orderType === 'delivery' && (
-          <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="rider">Assign Rider (required for delivery)</Label>
-            <Select value={selectedRider} onValueChange={setSelectedRider}>
-              <SelectTrigger id="rider">
-                <SelectValue placeholder={loadingRiders ? 'Loading riders...' : 'Select a rider'} />
-              </SelectTrigger>
-              <SelectContent>
-                {riders.map((rider: any) => (
-                  <SelectItem key={rider.id} value={rider.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{rider.name}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {rider.isActive ? 'active' : 'inactive'}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <Select value={selectedRider} onValueChange={setSelectedRider}>
+                <SelectTrigger id="rider">
+                  <SelectValue placeholder={loadingRiders ? 'Loading riders...' : 'Select a rider'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {riders.map((rider: any) => (
+                    <SelectItem key={rider.id} value={rider.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{rider.name}</span>
+                        <Badge variant="outline" className="ml-auto">
+                          {rider.isActive ? 'active' : 'inactive'}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
+          {/* walkin customer  */}
+          {orderType === 'walkin' && (
+            <div className="space-y-4 p-4  rounded-lg border">
+              <h3 className="font-medium text-blue-900">Payment Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="paymentAmount">Payment Amount</Label>
+                  <Input
+                    id="paymentAmount"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    min="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Payment Method</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CASH">Cash</SelectItem>
+                      <SelectItem value="CARD">Card</SelectItem>
+                      <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                      <SelectItem value="JAZZCASH">JazzCash</SelectItem>
+                      <SelectItem value="EASYPAISA">EasyPaisa</SelectItem>
+                      <SelectItem value="NAYA_PAY">Naya Pay</SelectItem>
+                      <SelectItem value="SADAPAY">SadaPay</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paymentNotes">Payment Notes (Optional)</Label>
+                <Input
+                  id="paymentNotes"
+                  placeholder="Add any notes about this payment..."
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
           {/* Priority */}
           <div className="space-y-2">
             <Label htmlFor="priority">Priority</Label>
