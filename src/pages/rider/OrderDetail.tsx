@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Phone, Package } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Package, CheckCircle, Calendar, DollarSign, User } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
@@ -138,6 +138,238 @@ const RiderOrderDetail = () => {
           <div>
             <h1 className="text-2xl font-bold">Order</h1>
             <p className="text-muted-foreground">Order data is incomplete</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if order is delivered - show completed order view
+  if (order.status?.toLowerCase() === 'delivered') {
+    return (
+      <div className="min-h-screen pb-24 md:pb-6">
+        {/* Mobile Layout - Completed Order */}
+        <div className="md:hidden">
+          {/* Top Section - Green Gradient Header */}
+          <div className="bg-gradient-to-br from-green-700 via-green-600 to-green-800 p-6 space-y-4">
+            {/* Back Button */}
+            <Link to="/rider">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 mb-4">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-green-600" fill="currentColor" />
+              </div>
+              <div>
+                <p className="text-sm text-white/90">Order #</p>
+                <p className="text-2xl font-bold text-white">{order.id.slice(-4)}</p>
+              </div>
+            </div>
+            
+            {/* Status Badge */}
+            <div className="flex items-center gap-2">
+              <Badge className="bg-white text-green-700 font-semibold">
+                Completed
+              </Badge>
+            </div>
+          </div>
+
+          {/* Content - White Cards */}
+          <div className="bg-white rounded-t-3xl -mt-10 p-6 space-y-4">
+            {/* Customer Info Card */}
+            <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-4 border border-blue-100">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 text-lg truncate">{order?.customer?.name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <a href={`tel:${order?.customer?.phone}`} className="text-sm text-gray-600 truncate">
+                      {order?.customer?.phone}
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-600">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                <span className="line-clamp-2">
+                  {[order?.customer?.houseNo, order?.customer?.streetNo, order?.customer?.area, order?.customer?.city].filter(Boolean).join(' ') || 'Address not available'}
+                </span>
+              </div>
+            </div>
+
+            {/* Order Details Card */}
+            <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-4 border border-green-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="h-5 w-5 text-green-600" />
+                <p className="font-bold text-gray-900">Order Details</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Bottles</span>
+                  <span className="font-semibold text-gray-900">{order?.numberOfBottles} bottles</span>
+                </div>
+                <div className="flex justify-between items-center border-t pt-2 mt-2">
+                  <span className="text-sm text-gray-600">Order Date</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    {order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Summary Card */}
+            <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl p-4 border border-amber-100">
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign className="h-5 w-5 text-amber-600" />
+                <p className="font-bold text-gray-900">Payment Summary</p>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-white rounded-xl p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">Total Amount</span>
+                    <span className="font-bold text-lg text-gray-900">
+                      RS. {order?.totalAmount || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Paid Amount</span>
+                    <span className="font-semibold text-green-700">
+                      RS. {order?.paidAmount || 0}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center gap-2 pt-2 border-t">
+                  <Badge className={`${(order?.totalAmount || 0) === (order?.paidAmount || 0) 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-orange-100 text-orange-700'}`}>
+                    {(order?.totalAmount || 0) === (order?.paidAmount || 0) ? 'Fully Paid' : 'Partial Payment'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout - Completed Order */}
+        <div className="hidden md:block max-w-4xl mx-auto px-6">
+          {/* Top Section - Green Gradient */}
+          <div className="bg-gradient-to-r from-green-500 to-green-700 rounded-3xl p-8 shadow-2xl mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-6">
+                <Link to="/rider">
+                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                    <ArrowLeft className="h-6 w-6" />
+                  </Button>
+                </Link>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-10 w-10 text-green-600" fill="currentColor" />
+                  </div>
+                  <div>
+                    <p className="text-white/90 text-sm">Order Details</p>
+                    <h1 className="text-3xl font-bold text-white">Order #{order.id.slice(-4)}</h1>
+                  </div>
+                </div>
+              </div>
+              <Badge className="bg-white text-green-700 text-lg px-4 py-2">Completed</Badge>
+            </div>
+          </div>
+
+          {/* Content Cards */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Customer Info */}
+            <Card className="border-blue-200 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-blue-600" />
+                  Customer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="font-semibold text-lg">{order?.customer?.name}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <a href={`tel:${order?.customer?.phone}`} className="text-primary hover:underline">
+                    {order?.customer?.phone}
+                  </a>
+                </div>
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {[order?.customer?.houseNo, order?.customer?.streetNo, order?.customer?.area, order?.customer?.city].filter(Boolean).join(' ') || 'Address not available'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Order Details */}
+            <Card className="border-green-200 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-green-600" />
+                  Order Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Quantity</span>
+                  <span className="font-semibold">{order?.numberOfBottles} bottles</span>
+                </div>
+                <div className="flex justify-between items-center border-t pt-3">
+                  <span className="text-muted-foreground">Order Date</span>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center border-t pt-3">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge className="bg-green-100 text-green-700">Delivered</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Summary - Full Width */}
+            <Card className="md:col-span-2 border-amber-200 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-amber-600" />
+                  Payment Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Total Amount</p>
+                    <p className="text-3xl font-bold text-gray-900">RS. {order?.totalAmount || 0}</p>
+                  </div>
+                  <div className="text-center border-x">
+                    <p className="text-sm text-muted-foreground mb-2">Paid Amount</p>
+                    <p className="text-3xl font-bold text-green-700">RS. {order?.paidAmount || 0}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Status</p>
+                    <Badge className={`text-lg px-4 py-2 ${(order?.totalAmount || 0) === (order?.paidAmount || 0) 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-orange-100 text-orange-700'}`}>
+                      {(order?.totalAmount || 0) === (order?.paidAmount || 0) ? 'Fully Paid' : 'Partial Payment'}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

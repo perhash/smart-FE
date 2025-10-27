@@ -1,10 +1,13 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import { ProtectedRoute, AdminRoute, RiderRoute } from "./components/ProtectedRoute";
+import { SplashScreen } from "./components/SplashScreen";
 import RootRedirect from "./components/RootRedirect";
 import AdminLayout from "./components/layouts/AdminLayout";
 import RiderLayout from "./components/layouts/RiderLayout";
@@ -78,17 +81,39 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <PWAUpdatePrompt />
-        <AppRoutes />
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {showSplash ? (
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      ) : (
+        <AuthProvider>
+          <NotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner 
+                position={isMobile ? "top-center" : "bottom-right"}
+                duration={4000}
+                richColors
+              />
+              <PWAUpdatePrompt />
+              <AppRoutes />
+            </TooltipProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      )}
+    </QueryClientProvider>
+  );
+};
 
 export default App;

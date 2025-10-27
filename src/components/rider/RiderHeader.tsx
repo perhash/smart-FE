@@ -11,6 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { NotificationDrawer } from "@/components/NotificationDrawer";
 
 export function RiderHeader() {
   const navigate = useNavigate();
@@ -31,6 +32,8 @@ export function RiderHeader() {
         </div>
         
         <div className="flex-1" />
+
+        <NotificationDrawer />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
