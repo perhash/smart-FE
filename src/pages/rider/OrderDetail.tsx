@@ -257,12 +257,28 @@ const RiderOrderDetail = () => {
                       RS. {order?.totalAmount || 0}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-600">Paid Amount</span>
                     <span className="font-semibold text-green-700">
                       RS. {order?.paidAmount || 0}
                     </span>
                   </div>
+                  {(order?.payable && parseFloat(order.payable) > 0) && (
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm text-red-600">Payable (Customer owes)</span>
+                      <span className="font-semibold text-red-700">
+                        RS. {order.payable}
+                      </span>
+                    </div>
+                  )}
+                  {(order?.receivable && parseFloat(order.receivable) > 0) && (
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm text-blue-600">Receivable (We owe)</span>
+                      <span className="font-semibold text-blue-700">
+                        RS. {order.receivable}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-center gap-2 pt-2 border-t">
                   <Badge className={getPaymentStatusBadge(order?.paymentStatus).className}>
@@ -367,7 +383,7 @@ const RiderOrderDetail = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-3 gap-6 mb-6">
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-2">Total Amount</p>
                     <p className="text-3xl font-bold text-gray-900">RS. {order?.totalAmount || 0}</p>
@@ -383,6 +399,23 @@ const RiderOrderDetail = () => {
                     </Badge>
                   </div>
                 </div>
+                
+                {(order?.payable && parseFloat(order.payable) > 0) || (order?.receivable && parseFloat(order.receivable) > 0) ? (
+                  <div className="border-t pt-6 space-y-3">
+                    {order?.payable && parseFloat(order.payable) > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                        <span className="text-sm font-semibold text-red-700">Payable (Customer owes)</span>
+                        <span className="text-2xl font-bold text-red-700">RS. {order.payable}</span>
+                      </div>
+                    )}
+                    {order?.receivable && parseFloat(order.receivable) > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <span className="text-sm font-semibold text-blue-700">Receivable (We owe)</span>
+                        <span className="text-2xl font-bold text-blue-700">RS. {order.receivable}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </div>
