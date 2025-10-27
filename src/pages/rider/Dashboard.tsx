@@ -25,6 +25,25 @@ interface Order {
   address?: string;
 }
 
+// Helper function to get payment status badge
+const getPaymentStatusBadge = (status?: string) => {
+  const paymentStatus = status?.toUpperCase();
+  switch (paymentStatus) {
+    case 'PAID':
+      return { text: 'PAID', className: 'bg-green-100 text-green-700' };
+    case 'NOT_PAID':
+      return { text: 'NOT PAID', className: 'bg-red-100 text-red-700' };
+    case 'PARTIAL':
+      return { text: 'PARTIAL', className: 'bg-orange-100 text-orange-700' };
+    case 'OVERPAID':
+      return { text: 'OVERPAID', className: 'bg-purple-100 text-purple-700' };
+    case 'REFUND':
+      return { text: 'REFUND', className: 'bg-blue-100 text-blue-700' };
+    default:
+      return { text: 'NOT PAID', className: 'bg-red-100 text-red-700' };
+  }
+};
+
 const RiderDashboard = () => {
   const [activeTab, setActiveTab] = useState("assigned");
   const [assignedDeliveries, setAssignedDeliveries] = useState<Order[]>([]);
@@ -233,16 +252,21 @@ const RiderDashboard = () => {
                             <p className="font-bold text-lg text-green-700">
                               RS. {delivery.amount}
                             </p>
-                            <Badge className="bg-green-100 text-green-700 mt-1">
-                              Paid
+                            <Badge className={getPaymentStatusBadge(delivery.paymentStatus).className + " mt-1"}>
+                              {getPaymentStatusBadge(delivery.paymentStatus).text}
                             </Badge>
                           </div>
                         </div>
-                        <div className="flex items-start gap-2 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span className="line-clamp-2">
-                            {delivery.address || "Address not available"}
-                          </span>
+                        <div className="flex items-start justify-between text-sm mb-2">
+                          <div className="flex items-start gap-2 text-gray-600">
+                            <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span className="line-clamp-2">
+                              {delivery.address || "Address not available"}
+                            </span>
+                          </div>
+                          <p className="text-gray-600">
+                            Paid: <span className="font-semibold text-green-600">RS. {delivery.paidAmount || 0}</span>
+                          </p>
                         </div>
                       </div>
                     </Link>
@@ -401,8 +425,19 @@ const RiderDashboard = () => {
                           <span className="line-clamp-2">{delivery.address || 'Address not available'}</span>
                         </div>
                         <div className="flex items-center justify-between pt-2">
-                          <Badge className="bg-green-100 text-green-700">Paid</Badge>
-                          <p className="font-bold text-xl text-green-700">RS. {delivery.amount}</p>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Total</p>
+                            <p className="font-bold text-xl text-green-700">RS. {delivery.amount}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 mb-1">Paid</p>
+                            <p className="font-bold text-lg text-green-600">RS. {delivery.paidAmount || 0}</p>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <Badge className={getPaymentStatusBadge(delivery.paymentStatus).className}>
+                            {getPaymentStatusBadge(delivery.paymentStatus).text}
+                          </Badge>
                         </div>
                       </div>
                     </div>

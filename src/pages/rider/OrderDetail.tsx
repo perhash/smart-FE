@@ -30,6 +30,25 @@ const RiderOrderDetail = () => {
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [order, setOrder] = useState<any>(null);
   
+  // Helper function to get payment status badge
+  const getPaymentStatusBadge = (status?: string) => {
+    const paymentStatus = status?.toUpperCase();
+    switch (paymentStatus) {
+      case 'PAID':
+        return { text: 'PAID', className: 'bg-green-100 text-green-700' };
+      case 'NOT_PAID':
+        return { text: 'NOT PAID', className: 'bg-red-100 text-red-700' };
+      case 'PARTIAL':
+        return { text: 'PARTIAL', className: 'bg-orange-100 text-orange-700' };
+      case 'OVERPAID':
+        return { text: 'OVERPAID', className: 'bg-purple-100 text-purple-700' };
+      case 'REFUND':
+        return { text: 'REFUND', className: 'bg-blue-100 text-blue-700' };
+      default:
+        return { text: 'NOT PAID', className: 'bg-red-100 text-red-700' };
+    }
+  };
+  
   // Calculate if we owe customer or customer owes us (after order is loaded)
   const totalAmount = order?.totalAmount ?? 0;
   const isPayable = totalAmount < 0;
@@ -246,10 +265,8 @@ const RiderOrderDetail = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-center gap-2 pt-2 border-t">
-                  <Badge className={`${(order?.totalAmount || 0) === (order?.paidAmount || 0) 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-orange-100 text-orange-700'}`}>
-                    {(order?.totalAmount || 0) === (order?.paidAmount || 0) ? 'Fully Paid' : 'Partial Payment'}
+                  <Badge className={getPaymentStatusBadge(order?.paymentStatus).className}>
+                    {getPaymentStatusBadge(order?.paymentStatus).text}
                   </Badge>
                 </div>
               </div>
@@ -361,10 +378,8 @@ const RiderOrderDetail = () => {
                   </div>
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-2">Status</p>
-                    <Badge className={`text-lg px-4 py-2 ${(order?.totalAmount || 0) === (order?.paidAmount || 0) 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-orange-100 text-orange-700'}`}>
-                      {(order?.totalAmount || 0) === (order?.paidAmount || 0) ? 'Fully Paid' : 'Partial Payment'}
+                    <Badge className={`text-lg px-4 py-2 ${getPaymentStatusBadge(order?.paymentStatus).className}`}>
+                      {getPaymentStatusBadge(order?.paymentStatus).text}
                     </Badge>
                   </div>
                 </div>
