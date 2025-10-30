@@ -66,6 +66,10 @@ export const API_ENDPOINTS = {
   PAYMENTS: '/payments',
   PAYMENT_BY_ID: (id: string) => `/payments/${id}`,
   
+  // Reports
+  REPORTS_ANALYTICS: '/reports/analytics',
+  REPORTS_DATA: '/reports/data',
+  
   // System
   TEST: '/test',
   HEALTH: '/health'

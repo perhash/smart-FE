@@ -14,14 +14,17 @@ const AdminLayout = () => {
         </div>
 
         <div className="flex flex-1 flex-col w-full">
-          <AdminHeader />
+          {/* Hide header on mobile */}
+          <div className="hidden md:block">
+            <AdminHeader />
+          </div>
           
-          <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">
+          <main className="flex-1 p-0  md:p-4 md:p-6 pb-20 md:pb-6 overflow-x-hidden">
             <Outlet />
           </main>
 
           {/* Mobile Bottom Navigation */}
-          <div className="md:hidden">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
             <AdminMobileNav />
           </div>
         </div>

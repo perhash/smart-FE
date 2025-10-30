@@ -48,13 +48,15 @@ class ApiService {
   }
 
   // Orders API
-  async getOrders(params?: { status?: string; date?: string; riderId?: string; startDate?: string; endDate?: string }) {
+  async getOrders(params?: { status?: string; date?: string; riderId?: string; startDate?: string; endDate?: string; page?: number; limit?: number }) {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.append('status', params.status);
     if (params?.date) searchParams.append('date', params.date);
     if (params?.riderId) searchParams.append('riderId', params.riderId);
     if (params?.startDate) searchParams.append('startDate', params.startDate);
     if (params?.endDate) searchParams.append('endDate', params.endDate);
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
     
     const queryString = searchParams.toString();
     return this.request(`${API_ENDPOINTS.ORDERS}${queryString ? `?${queryString}` : ''}`);
@@ -279,6 +281,19 @@ class ApiService {
 
   async healthCheck() {
     return this.request(API_ENDPOINTS.HEALTH);
+  }
+
+  // Reports API
+  async getAnalytics(period: string = 'monthly', entity: string = 'all') {
+    return this.request(`${API_ENDPOINTS.REPORTS_ANALYTICS}?period=${period}&entity=${entity}`);
+  }
+
+  async getReportData(period: string = 'monthly', type: string = 'orders', startDate?: string, endDate?: string) {
+    let url = `${API_ENDPOINTS.REPORTS_DATA}?period=${period}&type=${type}`;
+    if (startDate && endDate) {
+      url += `&startDate=${startDate}&endDate=${endDate}`;
+    }
+    return this.request(url);
   }
 }
 

@@ -28,6 +28,7 @@ import RiderDashboard from "./pages/rider/Dashboard";
 import RiderOrderDetail from "./pages/rider/OrderDetail";
 import RiderPayments from "./pages/rider/Payments";
 import RiderProfile from "./pages/rider/Profile";
+import RiderOrderHistory from "./pages/rider/OrderHistory";
 import AdminProfile from "./pages/admin/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,7 @@ const AppRoutes = () => {
         }>
           <Route index element={<RiderDashboard />} />
           <Route path="orders/:id" element={<RiderOrderDetail />} />
+          <Route path="history" element={<RiderOrderHistory />} />
           <Route path="payments" element={<RiderPayments />} />
           <Route path="profile" element={<RiderProfile />} />
         </Route>

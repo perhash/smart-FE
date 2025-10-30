@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Phone, CheckCircle, Clock } from "lucide-react";
+import { Package, MapPin, Phone, CheckCircle, Clock, DollarSign, Receipt } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
@@ -21,6 +22,7 @@ interface Order {
   date: string;
   paid: boolean;
   paidAmount: number;
+  currentOrderAmount?: number;
   paymentStatus: string;
   address?: string;
 }
@@ -54,6 +56,11 @@ const RiderDashboard = () => {
   const { user } = useAuth();
   const riderId = (user as any)?.riderProfile?.id || (user as any)?.profile?.id;
   const riderName = (user as any)?.riderProfile?.name || (user as any)?.profile?.name || "Rider";
+
+  // Calculate today's delivery metrics
+  const totalOrderAmount = completedDeliveries.reduce((sum, delivery) => sum + (delivery.amount || 0), 0);
+  const totalReceivedAmount = completedDeliveries.reduce((sum, delivery) => sum + (delivery.paidAmount || 0), 0);
+  const totalCurrentOrderAmount = completedDeliveries.reduce((sum, delivery) => sum + (delivery.currentOrderAmount || 0), 0);
 
   const fetchRiderData = useCallback(async () => {
     try {
@@ -101,7 +108,7 @@ const RiderDashboard = () => {
       {/* Mobile Layout */}
       <div className="md:hidden">
         {/* Top Section - Blue Gradient Header */}
-        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 space-y-6 h-[300px]">
+        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-6 space-y-6 h-[305px]">
           {/* Welcome Section */}
           <div className="flex items-center gap-4">
             {/* Profile Circle */}
@@ -143,6 +150,16 @@ const RiderDashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Order History Link - Mobile */}
+          <div className="mt-6">
+            <Link to="/rider/history">
+              <p className="text-white underline text-sm font-medium text-right">
+                Order history
+              </p>
+            </Link>
+          </div>
+
         </div>
 
         {/* Bottom Section - White Background with Tabs */}
@@ -154,8 +171,8 @@ const RiderDashboard = () => {
               <button
                 onClick={() => setActiveTab("assigned")}
                 className={`flex-1 py-3 px-4 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === "assigned"
-                    ? "bg-cyan-600 text-white shadow-md scale-[1.02]"
-                    : "text-cyan-700 hover:bg-white/60"
+                  ? "bg-cyan-600 text-white shadow-md scale-[1.02]"
+                  : "text-cyan-700 hover:bg-white/60"
                   }`}
               >
                 Assigned ({assignedDeliveries.length})
@@ -163,12 +180,34 @@ const RiderDashboard = () => {
               <button
                 onClick={() => setActiveTab("completed")}
                 className={`flex-1 py-3 px-4 rounded-full font-medium text-sm transition-all duration-300 ${activeTab === "completed"
-                    ? "bg-green-600 text-white shadow-md scale-[1.02]"
-                    : "text-cyan-700 hover:bg-white/60"
+                  ? "bg-green-600 text-white shadow-md scale-[1.02]"
+                  : "text-cyan-700 hover:bg-white/60"
                   }`}
               >
                 Completed ({completedDeliveries.length})
               </button>
+            </div>
+
+            {/* Today's Delivery Metrics */}
+            <div className="grid grid-cols-3 gap-3 mt-4 mb-4 ">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 border border-blue-200 h-full">
+                <div className="flex flex-col h-full">
+                  <p className="text-xs text-blue-700 mb-2">Total Order</p>
+                  <p className="text-xl font-bold text-blue-900 mt-auto">RS. {totalOrderAmount}</p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 border border-green-200 h-full">
+                <div className="flex flex-col h-full">
+                  <p className="text-xs text-green-700 mb-2">Total Received</p>
+                  <p className="text-xl font-bold text-green-900 mt-auto">RS. {totalReceivedAmount}</p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 border border-purple-200 h-full">
+                <div className="flex flex-col h-full">
+                  <p className="text-xs text-purple-700 mb-2">Current Order</p>
+                  <p className="text-xl font-bold text-purple-900 mt-auto">RS. {totalCurrentOrderAmount}</p>
+                </div>
+              </div>
             </div>
 
             {/* Assigned Deliveries */}
@@ -223,7 +262,7 @@ const RiderDashboard = () => {
 
             {/* Completed Deliveries */}
             {activeTab === "completed" && (
-              <div className="space-y-3">
+              <div className="space-y-3 mb-4">
                 {completedDeliveries.length === 0 ? (
                   <div className="text-center py-16">
                     <CheckCircle className="h-16 w-16 mx-auto text-gray-300 mb-4" />
@@ -235,7 +274,7 @@ const RiderDashboard = () => {
                       key={delivery.originalId}
                       to={`/rider/orders/${delivery.originalId}`}
                     >
-                      <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-4 border border-green-100 hover:shadow-lg transition-all duration-300 active:scale-[0.99]">
+                      <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-4 border border-green-100 hover:shadow-lg transition-all duration-300 active:scale-[0.99] mb-2">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
@@ -291,6 +330,13 @@ const RiderDashboard = () => {
               <h1 className="text-4xl font-bold text-white">Welcome {riderName}</h1>
               <p className="text-xl text-white/90 mt-2">You have {assignedDeliveries.length} pending deliveries</p>
             </div>
+            <div className="flex justify-center pt-4">
+              <Link to="/rider/history">
+                <Button className="bg-transparent backdrop-blur-sm text-white border-white rounded-full px-4 py-2 hover:bg-white/20" variant="outline" size="lg">
+                  View Order History
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Metrics - Expanded for Desktop */}
@@ -343,8 +389,8 @@ const RiderDashboard = () => {
             <button
               onClick={() => setActiveTab("assigned")}
               className={`px-8 py-3 rounded-full font-medium transition-all ${activeTab === "assigned"
-                  ? "bg-white text-cyan-700 shadow-md"
-                  : "text-cyan-600"
+                ? "bg-white text-cyan-700 shadow-md"
+                : "text-cyan-600"
                 }`}
             >
               Assigned ({assignedDeliveries.length})
@@ -352,12 +398,49 @@ const RiderDashboard = () => {
             <button
               onClick={() => setActiveTab("completed")}
               className={`px-8 py-3 rounded-full font-medium transition-all ${activeTab === "completed"
-                  ? "bg-white text-green-700 shadow-md"
-                  : "text-cyan-600"
+                ? "bg-white text-green-700 shadow-md"
+                : "text-cyan-600"
                 }`}
             >
               Completed ({completedDeliveries.length})
             </button>
+          </div>
+
+          {/* Today's Delivery Metrics */}
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl p-6 border border-blue-200 h-full">
+              <div className="flex items-center gap-4 h-full">
+                <div className="w-14 h-14 bg-blue-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="h-8 w-8 text-blue-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-blue-700 font-medium mb-1">Total Order</p>
+                  <p className="text-3xl font-bold text-blue-900">RS. {totalOrderAmount}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-3xl p-6 border border-green-200 h-full">
+              <div className="flex items-center gap-4 h-full">
+                <div className="w-14 h-14 bg-green-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Receipt className="h-8 w-8 text-green-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-green-700 font-medium mb-1">Total Received</p>
+                  <p className="text-3xl font-bold text-green-900">RS. {totalReceivedAmount}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-6 border border-purple-200 h-full">
+              <div className="flex items-center gap-4 h-full">
+                <div className="w-14 h-14 bg-purple-200 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Package className="h-8 w-8 text-purple-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-purple-700 font-medium mb-1">Current Order</p>
+                  <p className="text-3xl font-bold text-purple-900">RS. {totalCurrentOrderAmount}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Delivery List */}
@@ -400,50 +483,54 @@ const RiderDashboard = () => {
           )}
 
           {activeTab === "completed" && (
-            <div className="grid gap-4 grid-cols-2">
-              {completedDeliveries.length === 0 ? (
-                <div className="col-span-2 text-center py-16">
-                  <CheckCircle className="h-20 w-20 mx-auto text-gray-300 mb-4" />
-                  <p className="text-lg text-gray-500">No completed deliveries</p>
-                </div>
-              ) : (
-                completedDeliveries.map((delivery) => (
-                  <Link key={delivery.originalId} to={`/rider/orders/${delivery.originalId}`}>
-                    <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-6 border border-green-100">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="font-bold text-gray-900">{delivery.id}</p>
-                            <Badge className="bg-green-600 text-white">Completed</Badge>
+            <div className="space-y-6">
+              <div className="grid gap-4 grid-cols-2">
+                {completedDeliveries.length === 0 ? (
+                  <div className="col-span-2 text-center py-16">
+                    <CheckCircle className="h-20 w-20 mx-auto text-gray-300 mb-4" />
+                    <p className="text-lg text-gray-500">No completed deliveries</p>
+                  </div>
+                ) : (
+                  completedDeliveries.map((delivery) => (
+                    <Link key={delivery.originalId} to={`/rider/orders/${delivery.originalId}`}>
+                      <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-6 border border-green-100 hover:shadow-lg transition-shadow">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="font-bold text-gray-900">{delivery.id}</p>
+                              <Badge className="bg-green-600 text-white">Completed</Badge>
+                            </div>
+                            <p className="font-semibold text-gray-800">{delivery.customer}</p>
                           </div>
-                          <p className="font-semibold text-gray-800">{delivery.customer}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <MapPin className="h-4 w-4 flex-shrink-0" />
+                            <span className="line-clamp-2">{delivery.address || 'Address not available'}</span>
+                          </div>
+                          <div className="flex items-center justify-between pt-2">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Total</p>
+                              <p className="font-bold text-xl text-green-700">RS. {delivery.amount}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500 mb-1">Paid</p>
+                              <p className="font-bold text-lg text-green-600">RS. {delivery.paidAmount || 0}</p>
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t">
+                            <Badge className={getPaymentStatusBadge(delivery.paymentStatus).className}>
+                              {getPaymentStatusBadge(delivery.paymentStatus).text}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span className="line-clamp-2">{delivery.address || 'Address not available'}</span>
-                        </div>
-                        <div className="flex items-center justify-between pt-2">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Total</p>
-                            <p className="font-bold text-xl text-green-700">RS. {delivery.amount}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 mb-1">Paid</p>
-                            <p className="font-bold text-lg text-green-600">RS. {delivery.paidAmount || 0}</p>
-                          </div>
-                        </div>
-                        <div className="pt-2 border-t">
-                          <Badge className={getPaymentStatusBadge(delivery.paymentStatus).className}>
-                            {getPaymentStatusBadge(delivery.paymentStatus).text}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              )}
+                    </Link>
+                  ))
+                )}
+              </div>
+
+
             </div>
           )}
         </div>
