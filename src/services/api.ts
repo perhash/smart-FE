@@ -99,6 +99,13 @@ class ApiService {
     });
   }
 
+  async amendOrder(id: string, payload: { numberOfBottles: number; unitPrice: number; notes?: string; priority?: string; riderId?: string }) {
+    return this.request(`${API_ENDPOINTS.ORDER_BY_ID(id)}/amend`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Customers API
   async getCustomers(status?: string) {
     const params = status ? `?status=${status}` : '';
