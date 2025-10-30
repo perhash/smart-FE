@@ -47,6 +47,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [activeOrderMap, setActiveOrderMap] = useState<Record<string, boolean>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Debounced customer search
@@ -72,6 +73,33 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // For each searched customer, detect if they have an in-progress order and mark them to exclude from list
+  useEffect(() => {
+    let cancelled = false;
+    const checkActiveOrders = async () => {
+      const entries = await Promise.all(
+        customerResults.slice(0, 20).map(async (c) => {
+          try {
+            const res = await apiService.getCustomerById(c.id) as any;
+            if (res?.success && Array.isArray(res.data?.orders)) {
+              const hasActive = res.data.orders.some((o: any) => ['pending','assigned','in_progress','in progress'].includes(String(o.status).toLowerCase()));
+              return [c.id, hasActive] as [string, boolean];
+            }
+          } catch {}
+          return [c.id, false] as [string, boolean];
+        })
+      );
+      if (!cancelled) {
+        const map: Record<string, boolean> = {};
+        for (const [id, flag] of entries) map[id] = flag;
+        setActiveOrderMap(map);
+      }
+    };
+    if (customerResults.length > 0) checkActiveOrders();
+    else setActiveOrderMap({});
+    return () => { cancelled = true; };
+  }, [customerResults]);
 
   const handleClearBill = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +200,8 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                   <p className="p-3 text-sm text-muted-foreground">Searching...</p>
                 ) : customerResults.length > 0 ? (
                   customerResults
-                    .filter(customer => customer.currentBalance !== 0) // Only show customers with bills
+                    .filter(customer => customer.currentBalance !== 0)
+                    .filter(customer => !activeOrderMap[customer.id]) // Exclude customers with in-progress orders
                     .map((customer) => (
                       <div
                         key={customer.id}
