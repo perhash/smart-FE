@@ -60,6 +60,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [riders, setRiders] = useState<any[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [isAmend, setIsAmend] = useState(false);
 
   // Payment fields for walk-in orders
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -127,6 +129,56 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
 
   const filteredCustomers = customerResults;
 
+  // When customer is selected, check for active order and prefill if present
+  useEffect(() => {
+    const loadActiveOrder = async () => {
+      if (!selectedCustomer || selectedCustomer.id === 'walkin') {
+        setActiveOrder(null);
+        setIsAmend(false);
+        return;
+      }
+      try {
+        const res = await apiService.getCustomerById(selectedCustomer.id) as any;
+        if (res?.success && Array.isArray(res.data?.orders)) {
+          const inProgress = res.data.orders.find((o: any) => ['pending','assigned','in_progress','in progress'].includes(String(o.status).toLowerCase()));
+          if (inProgress && inProgress.id) {
+            // Fetch full order to infer rider and precise amounts
+            const full = await apiService.getOrderById(inProgress.id) as any;
+            const orderData = full?.data || null;
+            setActiveOrder(orderData);
+            setIsAmend(true);
+
+            // Prefill bottles and unit price (infer unit price from currentOrderAmount / numberOfBottles)
+            const nb = orderData?.numberOfBottles;
+            const coa = parseFloat(orderData?.currentOrderAmount ?? 0);
+            if (nb && nb > 0 && !isNaN(coa)) {
+              const inferred = Math.round(coa / nb);
+              setBottles(String(nb));
+              setPricePerBottle(String(inferred));
+            }
+            // Prefill rider for delivery orders
+            if (orderData?.orderType === 'DELIVERY' && orderData?.riderId) {
+              setOrderType('delivery');
+              setSelectedRider(orderData.riderId);
+            } else if (orderData?.orderType === 'WALKIN') {
+              setOrderType('walkin');
+            }
+          } else {
+            setActiveOrder(null);
+            setIsAmend(false);
+          }
+        } else {
+          setActiveOrder(null);
+          setIsAmend(false);
+        }
+      } catch {
+        setActiveOrder(null);
+        setIsAmend(false);
+      }
+    };
+    loadActiveOrder();
+  }, [selectedCustomer]);
+
   // Check if selected customer is unknown walk-in customer
   const isUnknownWalkInCustomer = selectedCustomer && 
     (selectedCustomer.name === 'Walk-in Customer' || 
@@ -182,31 +234,44 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     setShowConfirmDialog(true);
   };
 
-  // Actually create the order after confirmation
+  // Actually create or amend the order after confirmation
   const handleConfirmSubmit = async () => {
     setShowConfirmDialog(false);
 
     try {
       setIsCreating(true);
-      const payload: any = {
-        customerId: selectedCustomer.id === 'walkin' ? 'walkin' : selectedCustomer.id,
-        numberOfBottles: parseInt(bottles),
-        unitPrice: parseInt(pricePerBottle),
-        notes: notes || undefined,
-        priority: priority === 'high' ? 'HIGH' : priority === 'low' ? 'LOW' : 'NORMAL',
-        orderType: orderType.toUpperCase(),
-      };
-      if (orderType === 'delivery' && selectedRider) {
-        payload.riderId = selectedRider;
+      let res: any;
+      if (isAmend && activeOrder?.id) {
+        // Amend existing in-progress order
+        const payload: any = {
+          numberOfBottles: parseInt(bottles),
+          unitPrice: parseInt(pricePerBottle),
+          notes: notes || undefined,
+          priority: priority === 'high' ? 'HIGH' : priority === 'low' ? 'LOW' : 'NORMAL',
+          ...(orderType === 'delivery' && selectedRider ? { riderId: selectedRider } : {})
+        };
+        res = await apiService.amendOrder(activeOrder.id, payload);
+      } else {
+        const payload: any = {
+          customerId: selectedCustomer.id === 'walkin' ? 'walkin' : selectedCustomer.id,
+          numberOfBottles: parseInt(bottles),
+          unitPrice: parseInt(pricePerBottle),
+          notes: notes || undefined,
+          priority: priority === 'high' ? 'HIGH' : priority === 'low' ? 'LOW' : 'NORMAL',
+          orderType: orderType.toUpperCase(),
+        };
+        if (orderType === 'delivery' && selectedRider) {
+          payload.riderId = selectedRider;
+        }
+        res = await apiService.createOrder(payload);
       }
-      const res = await apiService.createOrder(payload);
       if ((res as any).success) {
         const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
         const customerBalance = selectedCustomer.currentBalance ?? 0;
         const totalAmount = currentOrderAmount + customerBalance;
 
         // If it's a walk-in order and payment amount is provided, complete it immediately
-        if (orderType === 'walkin' && paymentAmount) {
+        if (!isAmend && orderType === 'walkin' && paymentAmount) {
           try {
             const paymentAmountNum = parseFloat(paymentAmount);
             const completeRes = await apiService.completeWalkInOrder((res as any).data.id, {
@@ -224,7 +289,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
             toast.success(`Order created successfully! Total: RS. ${totalAmount}. Please complete payment manually.`);
           }
         } else {
-          toast.success(`Order created successfully! Total: RS. ${totalAmount}`);
+          toast.success(isAmend ? `Order updated successfully! Total: RS. ${totalAmount}` : `Order created successfully! Total: RS. ${totalAmount}`);
         }
 
         // Reset form
@@ -239,12 +304,14 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         setPaymentAmount("");
         setPaymentMethod("CASH");
         setPaymentNotes("");
+        setActiveOrder(null);
+        setIsAmend(false);
         setOpen(false);
       } else {
-        toast.error((res as any).message || 'Failed to create order');
+        toast.error((res as any).message || (isAmend ? 'Failed to update order' : 'Failed to create order'));
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create order');
+      toast.error(err?.message || (isAmend ? 'Failed to update order' : 'Failed to create order'));
     } finally {
       setIsCreating(false);
     }
@@ -273,7 +340,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
           {/* Order Type Selection */}
           <div className="space-y-2">
             <Label>Order Type</Label>
-            <Select value={orderType} onValueChange={setOrderType}>
+            <Select value={orderType} onValueChange={setOrderType} disabled={isAmend}>
               <SelectTrigger>
                 <SelectValue placeholder="Select order type" />
               </SelectTrigger>
@@ -541,9 +608,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
           {orderType === 'delivery' && (
             <div className="space-y-2">
               <Label htmlFor="rider">Assign Rider (required for delivery)</Label>
-              <Select value={selectedRider} onValueChange={setSelectedRider}>
+              <Select value={selectedRider} onValueChange={setSelectedRider} disabled={isAmend && !!activeOrder?.riderId}>
                 <SelectTrigger id="rider">
-                  <SelectValue placeholder={loadingRiders ? 'Loading riders...' : 'Select a rider'} />
+                  <SelectValue placeholder={loadingRiders ? 'Loading riders...' : (isAmend && activeOrder?.rider?.name ? activeOrder.rider.name : 'Select a rider')} />
                 </SelectTrigger>
                 <SelectContent>
                   {riders.map((rider: any) => (
@@ -680,10 +747,10 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Order...
+                  {isAmend ? 'Updating Order...' : 'Creating Order...'}
                 </>
               ) : (
-                "Create Order"
+                isAmend ? 'Update Order' : "Create Order"
               )}
             </Button>
           </div>
