@@ -798,8 +798,8 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 </div>
                 <div className="col-span-2">
                   <span className="text-muted-foreground">Balance:</span>
-                  <Badge variant={(selectedCustomer?.currentBalance ?? 0) < 0 ? "destructive" : "default"} className="ml-2">
-                    {(selectedCustomer?.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(selectedCustomer?.currentBalance ?? 0)}` : (selectedCustomer?.currentBalance ?? 0) > 0 ? `Receivable RS. ${selectedCustomer?.currentBalance}` : 'Clear'}
+                  <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"} className="ml-2">
+                    {(displayBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(displayBalance ?? 0)}` : (displayBalance ?? 0) > 0 ? `Receivable RS. ${displayBalance}` : 'Clear'}
                   </Badge>
                 </div>
               </div>
@@ -871,7 +871,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                   <span className="text-2xl font-bold text-primary">
                     RS. {(() => {
                       const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
-                      const customerBalance = selectedCustomer.currentBalance ?? 0;
+                      const customerBalance = displayBalance;
                       if (customerBalance < 0) {
                         return currentOrderAmount - Math.abs(customerBalance);
                       } else if (customerBalance > 0) {
@@ -884,7 +884,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {(() => {
-                    const customerBalance = selectedCustomer.currentBalance ?? 0;
+                    const customerBalance = displayBalance;
                     if (customerBalance < 0) {
                       return `Order amount minus payable balance`;
                     } else if (customerBalance > 0) {
