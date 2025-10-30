@@ -184,11 +184,21 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     (selectedCustomer.name === 'Walk-in Customer' || 
      selectedCustomer.phone === '000-000-0000');
 
+  // Choose which balance to display: in update mode use order snapshot; else use customer balance
+  const displayBalance = useMemo(() => {
+    if (isAmend && activeOrder) {
+      const b = parseFloat(activeOrder.customerBalance ?? 0);
+      return isNaN(b) ? 0 : b;
+    }
+    const b = parseFloat(selectedCustomer?.currentBalance ?? 0);
+    return isNaN(b) ? 0 : b;
+  }, [isAmend, activeOrder, selectedCustomer]);
+
   // Auto-calculate payment amount for walk-in orders
   useEffect(() => {
     if (orderType === 'walkin' && selectedCustomer && bottles && pricePerBottle) {
       const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
-      const customerBalance = selectedCustomer.currentBalance ?? 0;
+      const customerBalance = displayBalance;
       
       let totalAmount;
       
@@ -209,7 +219,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
         setPaymentAmount(totalAmount.toString());
       }
     }
-  }, [orderType, selectedCustomer, bottles, pricePerBottle]);
+  }, [orderType, selectedCustomer, bottles, pricePerBottle, displayBalance]);
 
   // Handle form validation and show confirmation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -492,10 +502,15 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                   )}
                 </div>
                 <div className="text-right">
-                  <Badge variant={(selectedCustomer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
-                    {(selectedCustomer.currentBalance ?? 0) < 0 ? "Payable" : (selectedCustomer.currentBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
+                  {isAmend && (
+                    <div className="mb-1">
+                      <Badge className="bg-amber-100 text-amber-700">Order in progress</Badge>
+                    </div>
+                  )}
+                  <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"}>
+                    {(displayBalance ?? 0) < 0 ? "Payable" : (displayBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
                   </Badge>
-                  <p className="text-sm font-medium mt-1">RS. {Math.abs(selectedCustomer.currentBalance ?? 0)}</p>
+                  <p className="text-sm font-medium mt-1">RS. {Math.abs(displayBalance ?? 0)}</p>
                 </div>
               </div>
               <Button
@@ -557,11 +572,11 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Pending Balance</span>
                   <div className="text-right">
-                    <Badge variant={(selectedCustomer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
-                      {(selectedCustomer.currentBalance ?? 0) < 0 ? "Payable" : (selectedCustomer.currentBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
+                    <Badge variant={(displayBalance ?? 0) < 0 ? "destructive" : "default"}>
+                      {(displayBalance ?? 0) < 0 ? "Payable" : (displayBalance ?? 0) > 0 ? "Receivable" : 'Clear'}
                     </Badge>
                     <p className="text-lg font-semibold mt-1">
-                      RS. {Math.abs(selectedCustomer.currentBalance ?? 0)}
+                      RS. {Math.abs(displayBalance ?? 0)}
                     </p>
                   </div>
                 </div>
@@ -574,7 +589,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                   <span className="text-3xl font-bold text-primary">
                     RS. {(() => {
                       const currentOrderAmount = parseInt(bottles) * parseInt(pricePerBottle);
-                      const customerBalance = selectedCustomer.currentBalance ?? 0;
+                      const customerBalance = displayBalance;
                       if (customerBalance < 0) {
                         // Payable - subtract from order amount
                         return currentOrderAmount - Math.abs(customerBalance);
@@ -590,7 +605,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   {(() => {
-                    const customerBalance = selectedCustomer.currentBalance ?? 0;
+                    const customerBalance = displayBalance;
                     if (customerBalance < 0) {
                       return `Order amount minus payable balance`;
                     } else if (customerBalance > 0) {
