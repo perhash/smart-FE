@@ -201,41 +201,47 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                 ) : customerResults.length > 0 ? (
                   customerResults
                     .filter(customer => customer.currentBalance !== 0)
-                    .filter(customer => !activeOrderMap[customer.id]) // Exclude customers with in-progress orders
-                    .map((customer) => (
-                      <div
-                        key={customer.id}
-                        onClick={() => {
-                          setSelectedCustomer(customer);
-                          setSearchQuery("");
-                          setPaymentAmount(Math.abs(customer.currentBalance).toString());
-                        }}
-                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium">{customer.name}</p>
-                            <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                            {customer.houseNo && (
-                              <p className="text-xs text-blue-600 font-medium">House: {customer.houseNo}</p>
-                            )}
-                            {(customer.area || customer.city) && (
-                              <p className="text-xs text-muted-foreground">
-                                {[customer.area, customer.city].filter(Boolean).join(', ')}
+                    .map((customer) => {
+                      const inProgress = !!activeOrderMap[customer.id];
+                      return (
+                        <div
+                          key={customer.id}
+                          onClick={() => {
+                            if (inProgress) return; // keep visible but not selectable
+                            setSelectedCustomer(customer);
+                            setSearchQuery("");
+                            setPaymentAmount(Math.abs(customer.currentBalance).toString());
+                          }}
+                          className={`p-3 border-b last:border-b-0 ${inProgress ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted cursor-pointer'}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">{customer.name}</p>
+                              <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                              {customer.houseNo && (
+                                <p className="text-xs text-blue-600 font-medium">House: {customer.houseNo}</p>
+                              )}
+                              {(customer.area || customer.city) && (
+                                <p className="text-xs text-muted-foreground">
+                                  {[customer.area, customer.city].filter(Boolean).join(', ')}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right ml-4 space-y-1">
+                              {inProgress && (
+                                <Badge className="bg-amber-100 text-amber-700">Order in progress</Badge>
+                              )}
+                              <Badge variant={customer.currentBalance < 0 ? "destructive" : "default"}>
+                                {customer.currentBalance < 0 ? "Payable" : "Receivable"}
+                              </Badge>
+                              <p className="text-sm font-semibold">
+                                RS. {Math.abs(customer.currentBalance)}
                               </p>
-                            )}
-                          </div>
-                          <div className="text-right ml-4">
-                            <Badge variant={customer.currentBalance < 0 ? "destructive" : "default"}>
-                              {customer.currentBalance < 0 ? "Payable" : "Receivable"}
-                            </Badge>
-                            <p className="text-sm font-semibold mt-1">
-                              RS. {Math.abs(customer.currentBalance)}
-                            </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                 ) : (
                   <p className="p-3 text-sm text-muted-foreground">No customers found</p>
                 )}
