@@ -62,6 +62,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [isAmend, setIsAmend] = useState(false);
+  const [activeOrderMap, setActiveOrderMap] = useState<Record<string, boolean>>({});
 
   // Payment fields for walk-in orders
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -126,6 +127,33 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // For each searched customer, detect if they have an in-progress order (for badge in the list)
+  useEffect(() => {
+    let cancelled = false;
+    const checkActiveOrders = async () => {
+      const entries = await Promise.all(
+        filteredCustomers.slice(0, 20).map(async (c) => {
+          try {
+            const res = await apiService.getCustomerById(c.id) as any;
+            if (res?.success && Array.isArray(res.data?.orders)) {
+              const hasActive = res.data.orders.some((o: any) => ['pending','assigned','in_progress','in progress'].includes(String(o.status).toLowerCase()));
+              return [c.id, hasActive] as [string, boolean];
+            }
+          } catch {}
+          return [c.id, false] as [string, boolean];
+        })
+      );
+      if (!cancelled) {
+        const map: Record<string, boolean> = {};
+        for (const [id, flag] of entries) map[id] = flag;
+        setActiveOrderMap(map);
+      }
+    };
+    if (filteredCustomers.length > 0) checkActiveOrders();
+    else setActiveOrderMap({});
+    return () => { cancelled = true; };
+  }, [filteredCustomers]);
 
   const filteredCustomers = customerResults;
 
@@ -456,7 +484,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                         </div>
                       </div>
                     )}
-                    {filteredCustomers.map((customer) => (
+                    {filteredCustomers.map((customer) => {
+                      const inProgress = !!activeOrderMap[customer.id];
+                      return (
                       <div
                         key={customer.id}
                         onClick={() => {
@@ -476,12 +506,17 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                               <p className="text-xs text-muted-foreground">{customer.address}</p>
                             )}
                           </div>
-                          <Badge variant={(customer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
-                            {(customer.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(customer.currentBalance)}` : (customer.currentBalance ?? 0) > 0 ? `Receivable RS. ${customer.currentBalance}` : 'Clear'}
-                          </Badge>
+                          <div className="text-right space-y-1">
+                            {inProgress && (
+                              <Badge className="bg-amber-100 text-amber-700">Order in progress</Badge>
+                            )}
+                            <Badge variant={(customer.currentBalance ?? 0) < 0 ? "destructive" : "default"}>
+                              {(customer.currentBalance ?? 0) < 0 ? `Payable RS. ${Math.abs(customer.currentBalance)}` : (customer.currentBalance ?? 0) > 0 ? `Receivable RS. ${customer.currentBalance}` : 'Clear'}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    );})}
                   </>
                 ) : (
                   <p className="p-3 text-sm text-muted-foreground">No customers found</p>
