@@ -88,16 +88,18 @@ export function formatPktDateTime12Hour(date: Date | string): string {
 
 /**
  * Format relative time (e.g., "2 mins ago", "1 hour ago") in PKT
- * @param {Date|string} date - Date object or ISO string
+ * @param {Date|string} date - Date object or ISO string (UTC)
  * @returns {string} Relative time string
  */
 export function formatPktRelativeTime(date: Date | string): string {
+  // Parse the date - if it's a string, it should be UTC ISO format
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const now = new Date();
-  const pktNow = new Date(now.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
-  const pktDate = new Date(dateObj.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
   
-  const diffMs = pktNow.getTime() - pktDate.getTime();
+  // Get current time in UTC
+  const now = new Date();
+  
+  // Calculate difference in milliseconds (both are UTC, so difference is correct)
+  const diffMs = now.getTime() - dateObj.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
@@ -107,7 +109,7 @@ export function formatPktRelativeTime(date: Date | string): string {
   if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
   if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
   
-  // For older dates, show the actual date and time
+  // For older dates, show the actual date and time in PKT
   return formatPktDateTime12Hour(date);
 }
 

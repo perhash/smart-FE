@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
-import { formatPktRelativeTime } from '@/utils/timezone';
+import { formatPktRelativeTime, formatPktDateTime12Hour, formatPktTime12Hour } from '@/utils/timezone';
 import {
   Sheet,
   SheetContent,
@@ -192,6 +192,9 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ trigger 
                           </p>
                           <p className="text-xs text-gray-500 mt-2">
                             {formatDate(notification.createdAt)}
+                            <span className="ml-2 text-gray-400">
+                              • {formatPktTime12Hour(notification.createdAt)}
+                            </span>
                           </p>
                         </div>
                       </div>
