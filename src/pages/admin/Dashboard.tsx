@@ -6,10 +6,11 @@ import { CreateOrderDialog } from "@/components/admin/CreateOrderDialog";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
 import { ClearBillDialog } from "@/components/admin/ClearBillDialog";
 import { apiService } from "@/services/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Droplet } from "lucide-react";
 import { formatPktRelativeTime, formatPktDateTime12Hour } from "@/utils/timezone";
+import { supabase } from "@/lib/supabase";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -48,9 +49,9 @@ const AdminDashboard = () => {
 
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<any>(null);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+  const fetchDashboardData = async () => {
       try {
         setLoading(true);
         const [statsResponse, activitiesResponse] = await Promise.all([
@@ -146,6 +147,34 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
+
+    // Set up Supabase real-time subscription for orders
+    const channel = supabase
+      .channel('dashboard-orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          console.log('Order change detected on dashboard:', payload);
+          
+          // Refetch dashboard data when orders change
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
   }, []);
 
   const getActivityIcon = (status: string) => {
