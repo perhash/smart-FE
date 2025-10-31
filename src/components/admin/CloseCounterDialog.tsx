@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, DollarSign, Users, Package, AlertCircle, Calendar } from "lucide-react";
+import { Loader2, DollarSign, Users, Package, AlertCircle, Calendar, TruckIcon, Wallet, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
 
@@ -223,6 +223,90 @@ export function CloseCounterDialog({ trigger }: CloseCounterDialogProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Rider Collections */}
+              {summary.riderCollections && summary.riderCollections.length > 0 && (
+                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TruckIcon className="h-5 w-5 text-purple-700" />
+                    <p className="text-sm font-semibold text-purple-900">Rider Collections</p>
+                  </div>
+                  <div className="space-y-2">
+                    {summary.riderCollections.map((rc: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">{rc.riderName}</span>
+                        <div className="text-right">
+                          <span className="text-base font-semibold text-purple-900">
+                            {formatCurrency(rc.amount)}
+                          </span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({rc.ordersCount} orders)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Walk-in Amount */}
+              {summary.walkInAmount > 0 && (
+                <div className="bg-cyan-50 rounded-lg p-4 border border-cyan-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="h-5 w-5 text-cyan-700" />
+                    <p className="text-sm font-semibold text-cyan-900">Walk-in Sales</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-base font-semibold text-cyan-900">Total Walk-in</span>
+                    <span className="text-2xl font-bold text-cyan-700">
+                      {formatCurrency(summary.walkInAmount)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Clear Bill Amount */}
+              {summary.clearBillAmount > 0 && (
+                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Receipt className="h-5 w-5 text-indigo-700" />
+                    <p className="text-sm font-semibold text-indigo-900">Clear Bill Sales</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-base font-semibold text-indigo-900">Total Clear Bill</span>
+                    <span className="text-2xl font-bold text-indigo-700">
+                      {formatCurrency(summary.clearBillAmount)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Methods */}
+              {summary.paymentMethods && summary.paymentMethods.length > 0 && (
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Wallet className="h-5 w-5 text-orange-700" />
+                    <p className="text-sm font-semibold text-orange-900">Payment Methods</p>
+                  </div>
+                  <div className="space-y-2">
+                    {summary.paymentMethods.map((pm: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">
+                          {pm.method.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                        </span>
+                        <div className="text-right">
+                          <span className="text-base font-semibold text-orange-900">
+                            {formatCurrency(pm.amount)}
+                          </span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({pm.ordersCount} orders)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">

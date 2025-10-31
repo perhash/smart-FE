@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Users, Package, AlertCircle, Loader2 } from "lucide-react";
+import { Calendar, DollarSign, Users, Package, AlertCircle, Loader2, TruckIcon, Wallet, Receipt } from "lucide-react";
 import { apiService } from "@/services/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -159,6 +159,90 @@ const DailyClosings = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Rider Collections */}
+                  {closing.riderCollections && closing.riderCollections.length > 0 && (
+                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-200 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TruckIcon className="h-4 w-4 text-purple-700" />
+                        <p className="text-xs font-semibold text-purple-900">Rider Collections</p>
+                      </div>
+                      <div className="space-y-2">
+                        {closing.riderCollections.map((rc: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center">
+                            <span className="text-xs text-gray-700">{rc.riderName}</span>
+                            <div className="text-right">
+                              <span className="text-sm font-semibold text-purple-900">
+                                {formatCurrency(rc.amount)}
+                              </span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                ({rc.ordersCount} orders)
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Walk-in Amount */}
+                  {closing.walkInAmount > 0 && (
+                    <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="h-4 w-4 text-cyan-700" />
+                        <p className="text-xs font-semibold text-cyan-900">Walk-in Sales</p>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold text-cyan-900">Total Walk-in</span>
+                        <span className="text-xl font-bold text-cyan-700">
+                          {formatCurrency(closing.walkInAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Clear Bill Amount */}
+                  {closing.clearBillAmount > 0 && (
+                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Receipt className="h-4 w-4 text-indigo-700" />
+                        <p className="text-xs font-semibold text-indigo-900">Clear Bill Sales</p>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold text-indigo-900">Total Clear Bill</span>
+                        <span className="text-xl font-bold text-indigo-700">
+                          {formatCurrency(closing.clearBillAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment Methods */}
+                  {closing.paymentMethods && closing.paymentMethods.length > 0 && (
+                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Wallet className="h-4 w-4 text-orange-700" />
+                        <p className="text-xs font-semibold text-orange-900">Payment Methods</p>
+                      </div>
+                      <div className="space-y-2">
+                        {closing.paymentMethods.map((pm: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center">
+                            <span className="text-xs text-gray-700">
+                              {pm.method.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                            </span>
+                            <div className="text-right">
+                              <span className="text-sm font-semibold text-orange-900">
+                                {formatCurrency(pm.amount)}
+                              </span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                ({pm.ordersCount} orders)
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Timestamp */}
                   <div className="text-xs text-gray-500 pt-3 border-t">
