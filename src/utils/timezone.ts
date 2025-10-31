@@ -26,11 +26,11 @@ export function getTodayPktDate(): string {
 
 /**
  * Convert a UTC date to PKT date string (YYYY-MM-DD)
- * @param {Date|string} date - Date object or ISO string
+ * @param {Date|string} date - Date object or ISO string (assumed to be UTC)
  * @returns {string} Date string in YYYY-MM-DD format (as it would appear in PKT)
  */
 export function formatPktDate(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = ensureUtcDate(date);
   const pktDate = new Date(dateObj.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
   const year = pktDate.getUTCFullYear();
   const month = String(pktDate.getUTCMonth() + 1).padStart(2, '0');
@@ -39,12 +39,30 @@ export function formatPktDate(date: Date | string): string {
 }
 
 /**
- * Format time in 12-hour format with AM/PM in PKT
+ * Ensure date string is parsed as UTC (adds 'Z' if missing timezone)
  * @param {Date|string} date - Date object or ISO string
+ * @returns {Date} Date object in UTC
+ */
+function ensureUtcDate(date: Date | string): Date {
+  if (typeof date === 'string') {
+    // If it doesn't end with Z or have timezone offset, treat as UTC
+    const dateStr = date.trim();
+    if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+      // No timezone info, assume it's UTC and add 'Z'
+      return new Date(dateStr + (dateStr.includes('T') ? 'Z' : ''));
+    }
+    return new Date(dateStr);
+  }
+  return date;
+}
+
+/**
+ * Format time in 12-hour format with AM/PM in PKT
+ * @param {Date|string} date - Date object or ISO string (assumed to be UTC)
  * @returns {string} Time in 12-hour format (e.g., "02:30 PM")
  */
 export function formatPktTime12Hour(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = ensureUtcDate(date);
   // Add PKT offset (5 hours) to UTC time
   const pktDate = new Date(dateObj.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
   
@@ -62,11 +80,11 @@ export function formatPktTime12Hour(date: Date | string): string {
 
 /**
  * Format date and time in PKT with 12-hour time format
- * @param {Date|string} date - Date object or ISO string
+ * @param {Date|string} date - Date object or ISO string (assumed to be UTC)
  * @returns {string} Date and time string (e.g., "Oct 31, 2024 02:30 PM")
  */
 export function formatPktDateTime12Hour(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = ensureUtcDate(date);
   // Add PKT offset (5 hours) to UTC time
   const pktDate = new Date(dateObj.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
   
@@ -92,12 +110,12 @@ export function formatPktDateTime12Hour(date: Date | string): string {
 
 /**
  * Format relative time (e.g., "2 mins ago", "1 hour ago") in PKT
- * @param {Date|string} date - Date object or ISO string (UTC)
+ * @param {Date|string} date - Date object or ISO string (assumed to be UTC)
  * @returns {string} Relative time string
  */
 export function formatPktRelativeTime(date: Date | string): string {
-  // Parse the date - if it's a string, it should be UTC ISO format
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // Ensure date is parsed as UTC
+  const dateObj = ensureUtcDate(date);
   
   // Get current time in UTC
   const now = new Date();
