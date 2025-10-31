@@ -6,6 +6,7 @@ import { ArrowLeft, Package, MapPin, Calendar, ChevronLeft, ChevronRight, Filter
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
+import { getTodayPktDate } from "@/utils/timezone";
 
 interface Order {
   id: string;
@@ -55,34 +56,44 @@ const OrderHistory = () => {
   const riderId = (user as any)?.riderProfile?.id || (user as any)?.profile?.id;
   const navigate = useNavigate();
 
-  // Calculate date range based on filter
+  // Calculate date range based on filter (using PKT timezone)
   const getDateRange = () => {
-    const today = new Date();
+    const todayStr = getTodayPktDate(); // Today's date in PKT (YYYY-MM-DD)
+    const today = new Date(todayStr + 'T00:00:00Z'); // Parse as UTC date
+    
+    // Get PKT date components by adding offset
+    const PKT_OFFSET_HOURS = 5;
+    const pktNow = new Date(Date.now() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
+    
     switch (filter) {
       case 'today':
         return {
-          startDate: new Date(today.setHours(0, 0, 0, 0)).toISOString().split('T')[0],
-          endDate: new Date(today.setHours(23, 59, 59, 999)).toISOString().split('T')[0]
+          startDate: todayStr,
+          endDate: todayStr
         };
       case 'week':
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay());
-        weekStart.setHours(0, 0, 0, 0);
+        // Calculate week start in PKT
+        const dayOfWeek = pktNow.getUTCDay(); // 0 = Sunday
+        const weekStart = new Date(pktNow);
+        weekStart.setUTCDate(pktNow.getUTCDate() - dayOfWeek);
+        const weekStartStr = `${weekStart.getUTCFullYear()}-${String(weekStart.getUTCMonth() + 1).padStart(2, '0')}-${String(weekStart.getUTCDate()).padStart(2, '0')}`;
         return {
-          startDate: weekStart.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0]
+          startDate: weekStartStr,
+          endDate: todayStr
         };
       case 'month':
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        // First day of current month in PKT
+        const monthStartStr = `${pktNow.getUTCFullYear()}-${String(pktNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
         return {
-          startDate: monthStart.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0]
+          startDate: monthStartStr,
+          endDate: todayStr
         };
       case 'year':
-        const yearStart = new Date(today.getFullYear(), 0, 1);
+        // First day of current year in PKT
+        const yearStartStr = `${pktNow.getUTCFullYear()}-01-01`;
         return {
-          startDate: yearStart.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0]
+          startDate: yearStartStr,
+          endDate: todayStr
         };
       default:
         return { startDate: undefined, endDate: undefined };

@@ -12,6 +12,7 @@ import { apiService } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { getTodayPktDate } from "@/utils/timezone";
 
 interface Order {
   id: string;
@@ -100,7 +101,7 @@ const RiderDetail = () => {
   const [toDateOpen, setToDateOpen] = useState(false);
 
   const updateStatsWithOrdersData = (orders: Order[]) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayPktDate();
 
     // Filter orders for today
     const todaysOrders = orders.filter(order => order.date === today);
@@ -173,7 +174,7 @@ const RiderDetail = () => {
         updateStatsWithOrdersData(transformedData);
 
         // Auto-expand today's date if it exists
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayPktDate();
         if (dates.includes(today)) {
           setExpandedDates(new Set([today]));
         }
