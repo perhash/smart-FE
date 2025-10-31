@@ -355,32 +355,38 @@ const RiderDetail = () => {
           console.log('Rider data:', riderData);
           setRider(riderData);
 
-          // Calculate stats from the rider data
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          const oneWeekAgo = new Date(today);
+          // Calculate stats from the rider data (using PKT dates)
+          const todayStr = getTodayPktDate();
+          const oneWeekAgo = new Date();
           oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-          const oneMonthAgo = new Date(today);
+          const oneWeekAgoStr = formatPktDate(oneWeekAgo);
+          
+          const oneMonthAgo = new Date();
           oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+          const oneMonthAgoStr = formatPktDate(oneMonthAgo);
 
-          // Today's orders
+          // Today's orders (compare PKT date strings)
           const todaysOrders = riderData.orders.filter(order => {
-            const orderDate = new Date(order.createdAt);
-            return orderDate >= today;
+            const orderDateStr = typeof order.createdAt === 'string' 
+              ? (order.createdAt.includes('T') ? formatPktDate(order.createdAt) : order.createdAt)
+              : formatPktDate(order.createdAt);
+            return orderDateStr === todayStr;
           });
 
           // Weekly orders
           const weeklyOrders = riderData.orders.filter(order => {
-            const orderDate = new Date(order.createdAt);
-            return orderDate >= oneWeekAgo;
+            const orderDateStr = typeof order.createdAt === 'string' 
+              ? (order.createdAt.includes('T') ? formatPktDate(order.createdAt) : order.createdAt)
+              : formatPktDate(order.createdAt);
+            return orderDateStr >= oneWeekAgoStr;
           });
 
           // Monthly orders
           const monthlyOrders = riderData.orders.filter(order => {
-            const orderDate = new Date(order.createdAt);
-            return orderDate >= oneMonthAgo;
+            const orderDateStr = typeof order.createdAt === 'string' 
+              ? (order.createdAt.includes('T') ? formatPktDate(order.createdAt) : order.createdAt)
+              : formatPktDate(order.createdAt);
+            return orderDateStr >= oneMonthAgoStr;
           });
 
           // Today's completed and pending orders

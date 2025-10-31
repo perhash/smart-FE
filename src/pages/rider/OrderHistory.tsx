@@ -390,7 +390,7 @@ const OrderHistory = () => {
                         <p className="text-xs text-gray-500 mb-1">Date</p>
                         <div className="flex items-center gap-1 text-sm text-gray-700">
                           <Calendar className="h-4 w-4" />
-                          <span>{new Date(delivery.date).toLocaleDateString()}</span>
+                          <span>{formatPktDate(delivery.date)}</span>
                         </div>
                       </div>
                       <div className="text-right">

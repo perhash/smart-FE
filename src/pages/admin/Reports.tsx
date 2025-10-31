@@ -10,6 +10,22 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatPktDate } from "@/utils/timezone";
+
+// Helper to format PKT date string for charts (dates are already in PKT format from backend)
+const formatChartDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}`;
+};
+
+const formatChartDateFull = (dateStr: string) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
+};
 
 const Reports = () => {
   const { user } = useAuth();
@@ -88,7 +104,7 @@ const Reports = () => {
       headers = ["Order ID", "Date", "Customer", "Phone", "Rider", "Bottles", "Amount", "Status", "Payment Status"];
       rows = reportData.map((item: any) => [
         item.id,
-        format(new Date(item.date), "yyyy-MM-dd"),
+        item.date || formatPktDate(new Date()),
         item.customer,
         item.phone,
         item.rider,
@@ -104,7 +120,7 @@ const Reports = () => {
         item.name,
         item.phone,
         item.address,
-        format(new Date(item.joinedDate), "yyyy-MM-dd"),
+        item.joinedDate ? formatPktDate(item.joinedDate) : formatPktDate(new Date()),
         item.status,
         item.totalOrders,
         item.deliveredOrders,
@@ -116,7 +132,7 @@ const Reports = () => {
         item.id,
         item.name,
         item.phone,
-        format(new Date(item.joinedDate), "yyyy-MM-dd"),
+        item.joinedDate ? formatPktDate(item.joinedDate) : formatPktDate(new Date()),
         item.status,
         item.totalDeliveries,
         item.pendingDeliveries,
@@ -133,7 +149,7 @@ const Reports = () => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${reportType}_${reportPeriod}_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `${reportType}_${reportPeriod}_${formatPktDate(new Date())}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
     toast.success("Report downloaded successfully");
@@ -379,8 +395,7 @@ const Reports = () => {
                       axisLine={false}
                       tickFormatter={(value) => {
                         if (!value) return '';
-                        const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        return formatChartDate(String(value));
                       }}
                     />
                     <YAxis 
@@ -395,7 +410,7 @@ const Reports = () => {
                           return (
                             <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
                               <p className="text-xs font-semibold text-gray-700 mb-2">
-                                {payload[0].payload.date ? new Date(payload[0].payload.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                                {payload[0].payload.date ? formatChartDateFull(String(payload[0].payload.date)) : ''}
                               </p>
                               <div className="space-y-1">
                                 {payload.map((entry, index) => (
@@ -714,8 +729,7 @@ const Reports = () => {
                       axisLine={false}
                       tickFormatter={(value) => {
                         if (!value) return '';
-                        const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        return formatChartDate(String(value));
                       }}
                     />
                     <YAxis 
@@ -730,7 +744,7 @@ const Reports = () => {
                           return (
                             <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4 backdrop-blur-sm">
                               <p className="text-sm font-bold text-gray-900 mb-2.5">
-                                {payload[0].payload.date ? new Date(payload[0].payload.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+                                {payload[0].payload.date ? formatChartDateFull(String(payload[0].payload.date)) : ''}
                               </p>
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between gap-4">
@@ -812,8 +826,7 @@ const Reports = () => {
                       axisLine={false}
                       tickFormatter={(value) => {
                         if (!value) return '';
-                        const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        return formatChartDate(String(value));
                       }}
                     />
                     <YAxis 
@@ -828,7 +841,7 @@ const Reports = () => {
                           return (
                             <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4">
                               <p className="text-sm font-bold text-gray-900 mb-2.5">
-                                {payload[0].payload.date ? new Date(payload[0].payload.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+                                {payload[0].payload.date ? formatChartDateFull(String(payload[0].payload.date)) : ''}
                               </p>
                               <div className="flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-2">
@@ -889,8 +902,7 @@ const Reports = () => {
                       axisLine={false}
                       tickFormatter={(value) => {
                         if (!value) return '';
-                        const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        return formatChartDate(String(value));
                       }}
                     />
                     <YAxis 
@@ -905,7 +917,7 @@ const Reports = () => {
                           return (
                             <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4">
                               <p className="text-sm font-bold text-gray-900 mb-2.5">
-                                {payload[0].payload.date ? new Date(payload[0].payload.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+                                {payload[0].payload.date ? formatChartDateFull(String(payload[0].payload.date)) : ''}
                               </p>
                               <div className="space-y-2">
                                 {payload.map((entry, index) => (
