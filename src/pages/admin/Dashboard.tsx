@@ -9,7 +9,7 @@ import { apiService } from "@/services/api";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Droplet } from "lucide-react";
-import { formatPktRelativeTime, formatPktDateTime12Hour } from "@/utils/timezone";
+import { formatPktRelativeTime, formatPktDateTime12Hour, formatPktTime12Hour } from "@/utils/timezone";
 import { supabase } from "@/lib/supabase";
 
 const AdminDashboard = () => {
@@ -95,10 +95,11 @@ const AdminDashboard = () => {
         }
 
         if ((activitiesResponse as any).success) {
-          // Format activity times in PKT with relative time
+          // Format activity times in PKT with relative time and add formatted deliveredAt
           const activities = (activitiesResponse as any).data.map((activity: any) => ({
             ...activity,
-            time: activity.time ? formatPktRelativeTime(activity.time) : 'Unknown time'
+            time: activity.time ? formatPktRelativeTime(activity.time) : 'Unknown time',
+            deliveredAtFormatted: activity.deliveredAt ? formatPktTime12Hour(activity.deliveredAt) : null
           }));
           setRecentActivities(activities);
         }
@@ -276,6 +277,7 @@ const AdminDashboard = () => {
                 recentActivities.map((activity: any) => {
                   const Icon = getActivityIcon(activity.status);
                   const bgColor = getActivityColor(activity.status);
+                  const orderTypeUpper = activity.orderType ? activity.orderType.toUpperCase() : 'DELIVERY';
 
                   return (
                     <div key={activity.id} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
@@ -284,17 +286,37 @@ const AdminDashboard = () => {
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 line-clamp-2">
-                            {activity.text}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {activity.time}
-                            {activity.date && (
-                              <span className="ml-1 text-gray-400">
-                                • {activity.date}
-                              </span>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-semibold text-gray-900 line-clamp-2">
+                              {activity.text}
+                            </p>
+                            <Badge variant={orderTypeUpper === "WALKIN" ? "secondary" : "default"} className="text-xs shrink-0">
+                              {orderTypeUpper === "WALKIN" ? "Walk-in" : "Delivery"}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-500">
+                              {activity.time}
+                              {activity.date && (
+                                <span className="ml-1 text-gray-400">
+                                  • {activity.date}
+                                </span>
+                              )}
+                            </p>
+                            {activity.deliveredAtFormatted && (
+                              <p className="text-xs text-green-600 font-medium">
+                                Delivered: {activity.deliveredAtFormatted}
+                              </p>
                             )}
-                          </p>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="text-gray-600">
+                                Total: <span className="font-semibold text-gray-900">RS. {activity.totalAmount?.toFixed(2) || '0.00'}</span>
+                              </span>
+                              <span className="text-gray-600">
+                                Paid: <span className="font-semibold text-green-600">RS. {activity.paidAmount?.toFixed(2) || '0.00'}</span>
+                              </span>
+                            </div>
+                          </div>
                         </div>
                         <Badge variant={activity.status === "success" ? "default" : activity.status === "new" ? "secondary" : "outline"}>
                           {activity.status}
@@ -371,6 +393,7 @@ const AdminDashboard = () => {
                 recentActivities.map((activity: any) => {
                   const Icon = getActivityIcon(activity.status);
                   const bgColor = getActivityColor(activity.status);
+                  const orderTypeUpper = activity.orderType ? activity.orderType.toUpperCase() : 'DELIVERY';
 
                   return (
                     <div key={activity.id} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -380,21 +403,41 @@ const AdminDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-sm font-semibold text-gray-900 line-clamp-2">
-                              {activity.text}
-                            </p>
+                            <div className="flex items-center gap-2 flex-1">
+                              <p className="text-sm font-semibold text-gray-900 line-clamp-2">
+                                {activity.text}
+                              </p>
+                              <Badge variant={orderTypeUpper === "WALKIN" ? "secondary" : "default"} className="text-xs shrink-0">
+                                {orderTypeUpper === "WALKIN" ? "Walk-in" : "Delivery"}
+                              </Badge>
+                            </div>
                             <Badge variant={activity.status === "success" ? "default" : activity.status === "new" ? "secondary" : "outline"}>
                               {activity.status}
                             </Badge>
                           </div>
-                          <p className="text-xs text-gray-500">
-                            {activity.time}
-                            {activity.date && (
-                              <span className="ml-1 text-gray-400">
-                                • {activity.date}
-                              </span>
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-500">
+                              {activity.time}
+                              {activity.date && (
+                                <span className="ml-1 text-gray-400">
+                                  • {activity.date}
+                                </span>
+                              )}
+                            </p>
+                            {activity.deliveredAtFormatted && (
+                              <p className="text-xs text-green-600 font-medium">
+                                Delivered: {activity.deliveredAtFormatted}
+                              </p>
                             )}
-                          </p>
+                            <div className="flex items-center gap-4 text-xs">
+                              <span className="text-gray-600">
+                                Total: <span className="font-semibold text-gray-900">RS. {activity.totalAmount?.toFixed(2) || '0.00'}</span>
+                              </span>
+                              <span className="text-gray-600">
+                                Paid: <span className="font-semibold text-green-600">RS. {activity.paidAmount?.toFixed(2) || '0.00'}</span>
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
