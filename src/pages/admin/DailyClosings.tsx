@@ -129,10 +129,10 @@ const DailyClosings = () => {
                   </div>
 
                   {/* Financial Summary */}
-                  <div className="bg-green-50 rounded-lg p-3 border border-green-200 mb-4">
+                  <div className={`rounded-lg p-3 border mb-4 ${closing.balanceClearedToday >= 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <DollarSign className="h-4 w-4 text-green-700" />
-                      <p className="text-xs font-semibold text-green-900">Financials</p>
+                      <DollarSign className={`h-4 w-4 ${closing.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`} />
+                      <p className={`text-xs font-semibold ${closing.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>Financials</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
@@ -147,11 +147,13 @@ const DailyClosings = () => {
                           {formatCurrency(closing.totalPaidAmount)}
                         </span>
                       </div>
-                      <div className="border-t border-green-300 pt-2">
+                      <div className={`border-t pt-2 ${closing.balanceClearedToday >= 0 ? 'border-red-300' : 'border-green-300'}`}>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-semibold text-green-900">Cleared</span>
-                          <span className="text-lg font-bold text-green-700">
-                            {formatCurrency(closing.balanceClearedToday)}
+                          <span className={`text-xs font-semibold ${closing.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>
+                            {closing.balanceClearedToday >= 0 ? 'Udhaar' : 'Recovery'}
+                          </span>
+                          <span className={`text-lg font-bold ${closing.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`}>
+                            {formatCurrency(Math.abs(closing.balanceClearedToday))}
                           </span>
                         </div>
                       </div>

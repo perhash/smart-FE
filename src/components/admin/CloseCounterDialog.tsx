@@ -193,10 +193,10 @@ export function CloseCounterDialog({ trigger }: CloseCounterDialogProps) {
               </div>
 
               {/* Financial Summary */}
-              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+              <div className={`rounded-lg p-4 border ${summary.balanceClearedToday >= 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                 <div className="flex items-center gap-2 mb-3">
-                  <DollarSign className="h-5 w-5 text-green-700" />
-                  <p className="text-sm font-semibold text-green-900">Financial Summary</p>
+                  <DollarSign className={`h-5 w-5 ${summary.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`} />
+                  <p className={`text-sm font-semibold ${summary.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>Financial Summary</p>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -211,11 +211,13 @@ export function CloseCounterDialog({ trigger }: CloseCounterDialogProps) {
                       {formatCurrency(summary.totalPaidAmount)}
                     </span>
                   </div>
-                  <div className="border-t border-green-300 pt-3">
+                  <div className={`border-t pt-3 ${summary.balanceClearedToday >= 0 ? 'border-red-300' : 'border-green-300'}`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-base font-semibold text-green-900">Balance Cleared Today</span>
-                      <span className="text-2xl font-bold text-green-700">
-                        {formatCurrency(summary.balanceClearedToday)}
+                      <span className={`text-base font-semibold ${summary.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>
+                        {summary.balanceClearedToday >= 0 ? 'Udhaar' : 'Recovery'}
+                      </span>
+                      <span className={`text-2xl font-bold ${summary.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`}>
+                        {formatCurrency(Math.abs(summary.balanceClearedToday))}
                       </span>
                     </div>
                   </div>
