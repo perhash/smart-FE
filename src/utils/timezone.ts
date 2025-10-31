@@ -45,8 +45,10 @@ export function formatPktDate(date: Date | string): string {
  */
 export function formatPktTime12Hour(date: Date | string): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // Add PKT offset (5 hours) to UTC time
   const pktDate = new Date(dateObj.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
   
+  // Use UTC methods since we've already added the offset
   let hours = pktDate.getUTCHours();
   const minutes = pktDate.getUTCMinutes();
   const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -65,8 +67,10 @@ export function formatPktTime12Hour(date: Date | string): string {
  */
 export function formatPktDateTime12Hour(date: Date | string): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // Add PKT offset (5 hours) to UTC time
   const pktDate = new Date(dateObj.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
   
+  // Use UTC methods since we've already added the offset
   const year = pktDate.getUTCFullYear();
   const month = pktDate.getUTCMonth();
   const day = pktDate.getUTCDate();

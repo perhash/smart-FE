@@ -191,10 +191,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ trigger 
                             {notification.message}
                           </p>
                           <p className="text-xs text-gray-500 mt-2">
-                            {formatDate(notification.createdAt)}
-                            <span className="ml-2 text-gray-400">
-                              • {formatPktTime12Hour(notification.createdAt)}
-                            </span>
+                            {formatPktTime12Hour(notification.createdAt)} • {formatDate(notification.createdAt)}
                           </p>
                         </div>
                       </div>
