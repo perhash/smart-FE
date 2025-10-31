@@ -277,7 +277,17 @@ const AdminDashboard = () => {
                 recentActivities.map((activity: any) => {
                   const Icon = getActivityIcon(activity.status);
                   const bgColor = getActivityColor(activity.status);
-                  const orderTypeUpper = activity.orderType ? activity.orderType.toUpperCase() : 'DELIVERY';
+                  // orderType comes from backend as enum: WALKIN, DELIVERY, CLEARBILL
+                  const orderType = activity.orderType || 'DELIVERY';
+                  
+                  // Convert to display name
+                  const orderTypeDisplay = orderType === 'WALKIN' ? 'Walk-in' : 
+                                         orderType === 'CLEARBILL' ? 'Clear Bill' : 
+                                         'Delivery';
+
+                  // Ensure amounts are numbers
+                  const totalAmount = typeof activity.totalAmount === 'number' ? activity.totalAmount : parseFloat(activity.totalAmount) || 0;
+                  const paidAmount = typeof activity.paidAmount === 'number' ? activity.paidAmount : parseFloat(activity.paidAmount) || 0;
 
                   return (
                     <div key={activity.id} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
@@ -290,8 +300,8 @@ const AdminDashboard = () => {
                             <p className="text-sm font-semibold text-gray-900 line-clamp-2">
                               {activity.text}
                             </p>
-                            <Badge variant={orderTypeUpper === "WALKIN" ? "secondary" : "default"} className="text-xs shrink-0">
-                              {orderTypeUpper === "WALKIN" ? "Walk-in" : "Delivery"}
+                            <Badge variant={orderType === "WALKIN" ? "secondary" : orderType === "CLEARBILL" ? "outline" : "default"} className="text-xs shrink-0">
+                              {orderTypeDisplay}
                             </Badge>
                           </div>
                           <div className="space-y-1">
@@ -310,10 +320,10 @@ const AdminDashboard = () => {
                             )}
                             <div className="flex items-center gap-3 text-xs">
                               <span className="text-gray-600">
-                                Total: <span className="font-semibold text-gray-900">RS. {activity.totalAmount?.toFixed(2) || '0.00'}</span>
+                                Total: <span className="font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
                               </span>
                               <span className="text-gray-600">
-                                Paid: <span className="font-semibold text-green-600">RS. {activity.paidAmount?.toFixed(2) || '0.00'}</span>
+                                Paid: <span className="font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
                               </span>
                             </div>
                           </div>
@@ -393,7 +403,17 @@ const AdminDashboard = () => {
                 recentActivities.map((activity: any) => {
                   const Icon = getActivityIcon(activity.status);
                   const bgColor = getActivityColor(activity.status);
-                  const orderTypeUpper = activity.orderType ? activity.orderType.toUpperCase() : 'DELIVERY';
+                  // orderType comes from backend as enum: WALKIN, DELIVERY, CLEARBILL
+                  const orderType = activity.orderType || 'DELIVERY';
+                  
+                  // Convert to display name
+                  const orderTypeDisplay = orderType === 'WALKIN' ? 'Walk-in' : 
+                                         orderType === 'CLEARBILL' ? 'Clear Bill' : 
+                                         'Delivery';
+
+                  // Ensure amounts are numbers
+                  const totalAmount = typeof activity.totalAmount === 'number' ? activity.totalAmount : parseFloat(activity.totalAmount) || 0;
+                  const paidAmount = typeof activity.paidAmount === 'number' ? activity.paidAmount : parseFloat(activity.paidAmount) || 0;
 
                   return (
                     <div key={activity.id} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -407,8 +427,8 @@ const AdminDashboard = () => {
                               <p className="text-sm font-semibold text-gray-900 line-clamp-2">
                                 {activity.text}
                               </p>
-                              <Badge variant={orderTypeUpper === "WALKIN" ? "secondary" : "default"} className="text-xs shrink-0">
-                                {orderTypeUpper === "WALKIN" ? "Walk-in" : "Delivery"}
+                              <Badge variant={orderType === "WALKIN" ? "secondary" : orderType === "CLEARBILL" ? "outline" : "default"} className="text-xs shrink-0">
+                                {orderTypeDisplay}
                               </Badge>
                             </div>
                             <Badge variant={activity.status === "success" ? "default" : activity.status === "new" ? "secondary" : "outline"}>
@@ -431,10 +451,10 @@ const AdminDashboard = () => {
                             )}
                             <div className="flex items-center gap-4 text-xs">
                               <span className="text-gray-600">
-                                Total: <span className="font-semibold text-gray-900">RS. {activity.totalAmount?.toFixed(2) || '0.00'}</span>
+                                Total: <span className="font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
                               </span>
                               <span className="text-gray-600">
-                                Paid: <span className="font-semibold text-green-600">RS. {activity.paidAmount?.toFixed(2) || '0.00'}</span>
+                                Paid: <span className="font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
                               </span>
                             </div>
                           </div>
