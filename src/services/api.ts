@@ -302,6 +302,21 @@ class ApiService {
     }
     return this.request(url);
   }
+
+  // Daily Closings API
+  async getDailyClosingSummary() {
+    return this.request('/daily-closings/summary');
+  }
+
+  async getAllDailyClosings() {
+    return this.request('/daily-closings');
+  }
+
+  async saveDailyClosing() {
+    return this.request('/daily-closings', {
+      method: 'POST',
+    });
+  }
 }
 
 export const apiService = new ApiService();

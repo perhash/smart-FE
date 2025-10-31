@@ -24,6 +24,7 @@ import Payments from "./pages/admin/Payments";
 import Reports from "./pages/admin/Reports";
 import Notifications from "./pages/admin/Notifications";
 import Settings from "./pages/admin/Settings";
+import DailyClosings from "./pages/admin/DailyClosings";
 import RiderDashboard from "./pages/rider/Dashboard";
 import RiderOrderDetail from "./pages/rider/OrderDetail";
 import RiderPayments from "./pages/rider/Payments";
@@ -59,6 +60,7 @@ const AppRoutes = () => {
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="payments" element={<Payments />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="daily-closings" element={<DailyClosings />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Settings />} />
           <Route path="profile" element={<AdminProfile />} />

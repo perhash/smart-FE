@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, TruckIcon, Package, DollarSign, Plus, Receipt } from "lucide-react";
+import { Users, TruckIcon, Package, DollarSign, Plus, Receipt, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreateOrderDialog } from "@/components/admin/CreateOrderDialog";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
 import { ClearBillDialog } from "@/components/admin/ClearBillDialog";
+import { CloseCounterDialog } from "@/components/admin/CloseCounterDialog";
 import { apiService } from "@/services/api";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -241,26 +242,36 @@ const AdminDashboard = () => {
 
         {/* White Section Below */}
         <div className="bg-white rounded-t-3xl -mt-5 p-6">
-          {/* 3 Buttons in One Row */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <CreateOrderDialog trigger={
-              <Button className="h-14 flex-col gap-1">
-                <Plus className="h-5 w-5" />
-                <span className="text-xs">Create Order</span>
-              </Button>
-            } />
-            <ClearBillDialog trigger={
-              <Button variant="outline" className="h-14 flex-col gap-1">
-                <Receipt className="h-5 w-5" />
-                <span className="text-xs">Clear Bill</span>
-              </Button>
-            } />
-            <AddCustomerDialog trigger={
-              <Button variant="outline" className="h-14 flex-col gap-1">
-                <Plus className="h-5 w-5" />
-                <span className="text-xs">Add Customer</span>
-              </Button>
-            } />
+          {/* 4 Buttons in Two Rows */}
+          <div className="space-y-3 mb-6">
+            <div className="grid grid-cols-2 gap-3">
+              <CreateOrderDialog trigger={
+                <Button className="h-14 flex-col gap-1">
+                  <Plus className="h-5 w-5" />
+                  <span className="text-xs">Create Order</span>
+                </Button>
+              } />
+              <ClearBillDialog trigger={
+                <Button variant="outline" className="h-14 flex-col gap-1">
+                  <Receipt className="h-5 w-5" />
+                  <span className="text-xs">Clear Bill</span>
+                </Button>
+              } />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <AddCustomerDialog trigger={
+                <Button variant="outline" className="h-14 flex-col gap-1">
+                  <Plus className="h-5 w-5" />
+                  <span className="text-xs">Add Customer</span>
+                </Button>
+              } />
+              <CloseCounterDialog trigger={
+                <Button variant="outline" className="h-14 flex-col gap-1 bg-cyan-600 hover:bg-cyan-700 text-white border-cyan-700">
+                  <Calendar className="h-5 w-5" />
+                  <span className="text-xs">Close Counter</span>
+                </Button>
+              } />
+            </div>
           </div>
 
           {/* Recent Activities */}
@@ -374,7 +385,7 @@ const AdminDashboard = () => {
 
         {/* Bottom Section - White Background */}
         <div className="bg-white rounded-3xl shadow-2xl p-8 border border-cyan-100">
-          {/* 3 Buttons - Centered */}
+          {/* 4 Buttons - Centered */}
           <div className="flex items-center justify-center gap-4 mb-8">
             <CreateOrderDialog />
             <ClearBillDialog />
@@ -382,6 +393,12 @@ const AdminDashboard = () => {
               <Button variant="outline" size="lg" className="gap-2">
                 <Plus className="h-5 w-5" />
                 Add Customer
+              </Button>
+            } />
+            <CloseCounterDialog trigger={
+              <Button variant="outline" size="lg" className="gap-2 bg-cyan-600 hover:bg-cyan-700 text-white border-cyan-700">
+                <Calendar className="h-5 w-5" />
+                Close Counter
               </Button>
             } />
           </div>
