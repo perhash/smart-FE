@@ -51,7 +51,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
 
-  const fetchDashboardData = async () => {
+  useEffect(() => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
         const [statsResponse, activitiesResponse] = await Promise.all([
