@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, TruckIcon, Package, DollarSign, Plus, Receipt, Calendar } from "lucide-react";
+import { Users, TruckIcon, Package, DollarSign, Plus, Receipt, Calendar, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreateOrderDialog } from "@/components/admin/CreateOrderDialog";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Droplet } from "lucide-react";
 import { formatPktRelativeTime, formatPktDateTime12Hour, formatPktTime12Hour } from "@/utils/timezone";
 import { supabase } from "@/lib/supabase";
+import { Loader2 } from "lucide-react";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -50,15 +51,19 @@ const AdminDashboard = () => {
 
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dailySummary, setDailySummary] = useState<any>(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [statsResponse, activitiesResponse] = await Promise.all([
+        setLoadingSummary(true);
+        const [statsResponse, activitiesResponse, summaryResponse] = await Promise.all([
           apiService.getDashboardStats(),
-          apiService.getRecentActivities()
+          apiService.getRecentActivities(),
+          apiService.getDailyClosingSummary()
         ]);
 
         if ((statsResponse as any).success) {
@@ -104,6 +109,10 @@ const AdminDashboard = () => {
           }));
           setRecentActivities(activities);
         }
+
+        if ((summaryResponse as any).success) {
+          setDailySummary((summaryResponse as any).data);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Keep mock data on error
@@ -146,6 +155,7 @@ const AdminDashboard = () => {
         ]);
       } finally {
         setLoading(false);
+        setLoadingSummary(false);
       }
     };
 
@@ -273,6 +283,102 @@ const AdminDashboard = () => {
               } />
             </div>
           </div>
+
+          {/* Daily Closing Overview - Mobile */}
+          {loadingSummary ? (
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-4 border border-cyan-200 mb-6">
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-cyan-600" />
+                <p className="ml-2 text-sm text-gray-600">Loading today's summary...</p>
+              </div>
+            </div>
+          ) : dailySummary && (
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-4 border border-cyan-200 mb-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-cyan-600" />
+                  <h3 className="text-lg font-bold text-gray-900">Today's Progress</h3>
+                </div>
+                {dailySummary.canClose && (
+                  <Badge className="bg-green-500 text-white">Ready to Close</Badge>
+                )}
+              </div>
+
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-white/80 rounded-xl p-3 border border-white">
+                  <p className="text-xs text-gray-600 mb-1">Orders</p>
+                  <p className="text-2xl font-bold text-gray-900">{dailySummary.totalOrders}</p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 border border-white">
+                  <p className="text-xs text-gray-600 mb-1">Bottles</p>
+                  <p className="text-2xl font-bold text-gray-900">{dailySummary.totalBottles}</p>
+                </div>
+              </div>
+
+              {/* Financial Summary */}
+              <div className="bg-white/80 rounded-xl p-3 border border-white mb-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-700">Order Amount</span>
+                    <span className="text-sm font-semibold">RS. {dailySummary.totalCurrentOrderAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-700">Paid Amount</span>
+                    <span className="text-sm font-semibold text-green-600">RS. {dailySummary.totalPaidAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Breakdown Stats */}
+              {(dailySummary.walkInAmount > 0 || dailySummary.clearBillAmount > 0 || (dailySummary.riderCollections && dailySummary.riderCollections.length > 0)) && (
+                <div className="space-y-2 mb-3">
+                  {dailySummary.walkInAmount > 0 && (
+                    <div className="bg-cyan-100/80 rounded-lg px-3 py-2 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-cyan-700" />
+                        <span className="text-xs font-semibold text-cyan-900">Walk-in</span>
+                      </div>
+                      <span className="text-xs font-bold text-cyan-700">RS. {dailySummary.walkInAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySummary.clearBillAmount > 0 && (
+                    <div className="bg-indigo-100/80 rounded-lg px-3 py-2 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-indigo-700" />
+                        <span className="text-xs font-semibold text-indigo-900">Clear Bill</span>
+                      </div>
+                      <span className="text-xs font-bold text-indigo-700">RS. {dailySummary.clearBillAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySummary.riderCollections && dailySummary.riderCollections.length > 0 && (
+                    <div className="bg-purple-100/80 rounded-lg px-3 py-2 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <TruckIcon className="h-4 w-4 text-purple-700" />
+                        <span className="text-xs font-semibold text-purple-900">Rider Collections</span>
+                      </div>
+                      <span className="text-xs font-bold text-purple-700">
+                        {dailySummary.riderCollections.length} rider{dailySummary.riderCollections.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Balance */}
+              <div className={`rounded-xl p-3 border ${dailySummary.balanceClearedToday >= 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-bold ${dailySummary.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>
+                    {dailySummary.balanceClearedToday >= 0 ? 'Udhaar' : 'Recovery'}
+                  </span>
+                  <span className={`text-xl font-bold ${dailySummary.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`}>
+                    RS. {Math.abs(dailySummary.balanceClearedToday).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Recent Activities */}
           <div>
@@ -402,6 +508,122 @@ const AdminDashboard = () => {
               </Button>
             } />
           </div>
+
+          {/* Daily Closing Overview - Desktop */}
+          {loadingSummary ? (
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-6 border border-cyan-200 mb-8">
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-cyan-600" />
+                <p className="ml-3 text-base text-gray-600">Loading today's summary...</p>
+              </div>
+            </div>
+          ) : dailySummary && (
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-6 border border-cyan-200 mb-8">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-6 w-6 text-cyan-600" />
+                  <h3 className="text-2xl font-bold text-gray-900">Today's Progress</h3>
+                </div>
+                {dailySummary.canClose && (
+                  <Badge className="bg-green-500 text-white px-4 py-1.5 text-base">Ready to Close</Badge>
+                )}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/80 rounded-xl p-4 border border-white">
+                      <p className="text-sm text-gray-600 mb-2">Total Orders</p>
+                      <p className="text-3xl font-bold text-gray-900">{dailySummary.totalOrders}</p>
+                    </div>
+                    <div className="bg-white/80 rounded-xl p-4 border border-white">
+                      <p className="text-sm text-gray-600 mb-2">Total Bottles</p>
+                      <p className="text-3xl font-bold text-gray-900">{dailySummary.totalBottles}</p>
+                    </div>
+                  </div>
+
+                  {/* Financial Summary */}
+                  <div className="bg-white/80 rounded-xl p-4 border border-white">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">Financials</p>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">Order Amount</span>
+                        <span className="text-base font-semibold">RS. {dailySummary.totalCurrentOrderAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">Paid Amount</span>
+                        <span className="text-base font-semibold text-green-600">RS. {dailySummary.totalPaidAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Balance */}
+                  <div className={`rounded-xl p-4 border ${dailySummary.balanceClearedToday >= 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                    <div className="flex justify-between items-center">
+                      <span className={`text-base font-bold ${dailySummary.balanceClearedToday >= 0 ? 'text-red-900' : 'text-green-900'}`}>
+                        {dailySummary.balanceClearedToday >= 0 ? 'Udhaar' : 'Recovery'}
+                      </span>
+                      <span className={`text-3xl font-bold ${dailySummary.balanceClearedToday >= 0 ? 'text-red-700' : 'text-green-700'}`}>
+                        RS. {Math.abs(dailySummary.balanceClearedToday).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                {(dailySummary.walkInAmount > 0 || dailySummary.clearBillAmount > 0 || (dailySummary.riderCollections && dailySummary.riderCollections.length > 0)) && (
+                  <div className="space-y-4">
+                    <p className="text-sm font-semibold text-gray-900">Breakdown</p>
+                    
+                    {dailySummary.walkInAmount > 0 && (
+                      <div className="bg-cyan-100/80 rounded-xl p-4 flex justify-between items-center border border-cyan-200">
+                        <div className="flex items-center gap-3">
+                          <Users className="h-5 w-5 text-cyan-700" />
+                          <span className="text-sm font-semibold text-cyan-900">Walk-in Sales</span>
+                        </div>
+                        <span className="text-base font-bold text-cyan-700">RS. {dailySummary.walkInAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    
+                    {dailySummary.clearBillAmount > 0 && (
+                      <div className="bg-indigo-100/80 rounded-xl p-4 flex justify-between items-center border border-indigo-200">
+                        <div className="flex items-center gap-3">
+                          <Receipt className="h-5 w-5 text-indigo-700" />
+                          <span className="text-sm font-semibold text-indigo-900">Clear Bill Sales</span>
+                        </div>
+                        <span className="text-base font-bold text-indigo-700">RS. {dailySummary.clearBillAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    
+                    {dailySummary.riderCollections && dailySummary.riderCollections.length > 0 && (
+                      <div className="bg-purple-100/80 rounded-xl p-4 border border-purple-200">
+                        <div className="flex items-center gap-3 mb-3">
+                          <TruckIcon className="h-5 w-5 text-purple-700" />
+                          <span className="text-sm font-semibold text-purple-900">Rider Collections</span>
+                        </div>
+                        <div className="space-y-2">
+                          {dailySummary.riderCollections.slice(0, 3).map((rc: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span className="text-sm text-gray-700">{rc.riderName}</span>
+                              <span className="text-sm font-semibold text-purple-900">RS. {rc.amount.toFixed(2)}</span>
+                            </div>
+                          ))}
+                          {dailySummary.riderCollections.length > 3 && (
+                            <p className="text-xs text-gray-500 text-center pt-2">
+                              +{dailySummary.riderCollections.length - 3} more riders
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Recent Activities */}
           <div>
