@@ -12,7 +12,7 @@ import { apiService } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { getTodayPktDate } from "@/utils/timezone";
+import { getTodayPktDate, formatPktDate, formatPktDateTime12Hour, formatPktTime12Hour } from "@/utils/timezone";
 
 interface Order {
   id: string;
@@ -561,40 +561,31 @@ const RiderDetail = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatPktDateTime12Hour(dateString);
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
+    return formatPktTime12Hour(dateString);
   };
 
   const formatDateHeader = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const todayStr = getTodayPktDate();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = formatPktDate(yesterdayDate);
+    const dateStr = formatPktDate(dateString);
 
-    if (date.toDateString() === today.toDateString()) {
+    if (dateStr === todayStr) {
       return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
+    } else if (dateStr === yesterdayStr) {
       return 'Yesterday';
     } else {
-      return date.toLocaleDateString('en-IN', {
-        weekday: 'long',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      });
+      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      const PKT_OFFSET_HOURS = 5;
+      const pktDate = new Date(date.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${days[pktDate.getUTCDay()]}, ${String(pktDate.getUTCDate()).padStart(2, '0')} ${months[pktDate.getUTCMonth()]}, ${pktDate.getUTCFullYear()}`;
     }
   };
 

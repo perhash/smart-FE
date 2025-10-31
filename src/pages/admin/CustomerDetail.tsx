@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
+import { formatPktDate, formatPktDateTime12Hour } from '@/utils/timezone';
 
 interface Customer {
   id: string;
@@ -370,7 +371,7 @@ const CustomerDetail = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Member Since:</span>
-              <span className="font-medium">{new Date(customer.createdAt).toLocaleDateString()}</span>
+              <span className="font-medium">{formatPktDate(customer.createdAt)}</span>
             </div>
             {updatingStatus && (
               <div className="text-xs text-muted-foreground text-center">
@@ -413,7 +414,7 @@ const CustomerDetail = () => {
                     <div className="text-right">
                       <div className="font-semibold">Rs {order.totalAmount.toFixed(2)}</div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {formatPktDate(order.createdAt)}
                       </div>
                     </div>
                   </div>
@@ -452,7 +453,7 @@ const CustomerDetail = () => {
                   
                   {order.deliveredAt && (
                     <div className="mt-2 text-sm text-muted-foreground">
-                      Delivered: {new Date(order.deliveredAt).toLocaleDateString()}
+                      Delivered: {order.deliveredAt ? formatPktDate(order.deliveredAt) : 'N/A'}
                     </div>
                   )}
                 </div>

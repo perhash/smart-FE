@@ -9,6 +9,7 @@ import { apiService } from "@/services/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Droplet } from "lucide-react";
+import { formatPktRelativeTime, formatPktDateTime12Hour } from "@/utils/timezone";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -92,7 +93,12 @@ const AdminDashboard = () => {
         }
 
         if ((activitiesResponse as any).success) {
-          setRecentActivities((activitiesResponse as any).data);
+          // Format activity times in PKT with relative time
+          const activities = (activitiesResponse as any).data.map((activity: any) => ({
+            ...activity,
+            time: activity.time ? formatPktRelativeTime(activity.time) : 'Unknown time'
+          }));
+          setRecentActivities(activities);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -127,6 +133,7 @@ const AdminDashboard = () => {
             color: "text-destructive",
           },
         ]);
+        // Format mock activities with PKT time if needed
         setRecentActivities([
           { id: 1, text: "New order #1234 from Ramesh Kumar", time: "2 mins ago", status: "new" },
           { id: 2, text: "Payment received RS. 500 from Priya Sharma", time: "15 mins ago", status: "success" },
@@ -250,7 +257,14 @@ const AdminDashboard = () => {
                           <p className="text-sm font-semibold text-gray-900 line-clamp-2">
                             {activity.text}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {activity.time}
+                            {activity.date && (
+                              <span className="ml-1 text-gray-400">
+                                • {activity.date}
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <Badge variant={activity.status === "success" ? "default" : activity.status === "new" ? "secondary" : "outline"}>
                           {activity.status}
@@ -343,7 +357,14 @@ const AdminDashboard = () => {
                               {activity.status}
                             </Badge>
                           </div>
-                          <p className="text-xs text-gray-500">{activity.time}</p>
+                          <p className="text-xs text-gray-500">
+                            {activity.time}
+                            {activity.date && (
+                              <span className="ml-1 text-gray-400">
+                                • {activity.date}
+                              </span>
+                            )}
+                          </p>
                         </div>
                       </div>
                     </div>

@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
+import { formatPktRelativeTime } from '@/utils/timezone';
 import {
   Sheet,
   SheetContent,
@@ -74,7 +74,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ trigger 
 
   const formatDate = (dateString: string) => {
     try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+      return formatPktRelativeTime(dateString);
     } catch {
       return '';
     }

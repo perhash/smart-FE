@@ -10,6 +10,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { formatPktDateTime12Hour, formatPktDate } from "@/utils/timezone";
 
 // Helper function to get payment status badge
 const getPaymentStatusBadge = (status?: string) => {
@@ -206,7 +207,7 @@ const OrderDetail = () => {
                 <div className="flex justify-between items-center border-t pt-2 mt-2">
                   <span className="text-sm text-gray-600">Order Date</span>
                   <span className="text-sm font-medium text-gray-700">
-                    {order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                    {order?.createdAt ? formatPktDate(order.createdAt) : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -392,7 +393,7 @@ const OrderDetail = () => {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span className="text-sm font-medium">
-                      {order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                      {order?.createdAt ? formatPktDate(order.createdAt) : 'N/A'}
                     </span>
                   </div>
                 </div>

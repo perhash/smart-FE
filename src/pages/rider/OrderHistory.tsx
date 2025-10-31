@@ -6,7 +6,7 @@ import { ArrowLeft, Package, MapPin, Calendar, ChevronLeft, ChevronRight, Filter
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
-import { getTodayPktDate } from "@/utils/timezone";
+import { getTodayPktDate, formatPktDate } from "@/utils/timezone";
 
 interface Order {
   id: string;
@@ -255,7 +255,7 @@ const OrderHistory = () => {
                       </div>
                       <div className="flex items-center gap-1 text-gray-500">
                         <Calendar className="h-3 w-3" />
-                        <p className="text-xs">{new Date(delivery.date).toLocaleDateString()}</p>
+                        <p className="text-xs">{formatPktDate(delivery.date)}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t">
