@@ -11,6 +11,17 @@ import { apiService } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatPktDateTime12Hour, formatPktDate } from "@/utils/timezone";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Helper function to get payment status badge
 const getPaymentStatusBadge = (status?: string) => {
@@ -59,12 +70,20 @@ const OrderDetail = () => {
         ]);
         if (orderRes?.success) {
           setOrder(orderRes.data);
+        } else {
+          console.error('Failed to fetch order:', orderRes);
+          setOrder(null);
         }
         if (ridersRes?.success) {
-          setRiders(ridersRes.data);
+          setRiders(ridersRes.data || []);
+        } else {
+          console.error('Failed to fetch riders:', ridersRes);
+          setRiders([]);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setOrder(null);
+        setRiders([]);
       } finally {
         setLoading(false);
       }
@@ -192,11 +211,13 @@ const OrderDetail = () => {
     return (
       <div className="min-h-screen pb-24 md:pb-6">
         <div className="flex items-center gap-4 p-6">
-          <Link to="/admin/orders">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold">Order</h1>
             <p className="text-muted-foreground">Loading order details...</p>
@@ -210,11 +231,13 @@ const OrderDetail = () => {
     return (
       <div className="min-h-screen pb-24 md:pb-6">
         <div className="flex items-center gap-4 p-6">
-          <Link to="/admin/orders">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold">Order Not Found</h1>
             <p className="text-muted-foreground">Order with ID {id} could not be found</p>
@@ -224,11 +247,20 @@ const OrderDetail = () => {
     );
   }
 
-  const orderStatus = order.status?.toUpperCase() || '';
+  // Safely get order status
+  const orderStatus = order?.status ? String(order.status).toUpperCase().trim() : '';
   const isCompleted = ['DELIVERED', 'COMPLETED'].includes(orderStatus);
   const isAssigned = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'CREATED'].includes(orderStatus);
-  const hasRider = order.rider && order.rider !== 'Not assigned' && order.rider?.id;
-  const isWalkIn = order.orderType === 'WALKIN' || order.customer?.name === 'Walk-in Customer' || order.customer === 'Walk-in Customer';
+  
+  // Check if rider exists - handle both object and string formats
+  const hasRider = order?.rider && 
+    order.rider !== 'Not assigned' && 
+    order.rider !== null &&
+    (typeof order.rider === 'object' ? order.rider?.id : true);
+    
+  const isWalkIn = order?.orderType === 'WALKIN' || 
+    order?.customer?.name === 'Walk-in Customer' || 
+    order?.customer === 'Walk-in Customer';
 
   // Check if order is completed (DELIVERED or COMPLETED) - show read-only view
   if (isCompleted) {
