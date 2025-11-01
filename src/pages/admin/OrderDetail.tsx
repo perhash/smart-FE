@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, User, TruckIcon, Package, CreditCard, CheckCircle, MapPin, Phone, DollarSign, Calendar } from "lucide-react";
+import { ArrowLeft, User, TruckIcon, Package, CreditCard, CheckCircle, MapPin, Phone, DollarSign, Calendar, X, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,6 +39,15 @@ const OrderDetail = () => {
   const [selectedRider, setSelectedRider] = useState("");
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
+  const [reassigning, setReassigning] = useState(false);
+  const [showReassign, setShowReassign] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [delivering, setDelivering] = useState(false);
+  const [showDeliverForm, setShowDeliverForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [paymentNotes, setPaymentNotes] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,6 +91,7 @@ const OrderDetail = () => {
       if (res?.success) {
         setOrder(res.data);
         toast.success(`Order assigned successfully`);
+        setSelectedRider("");
         loadOrder();
       } else {
         toast.error(res?.message || 'Failed to assign order');
@@ -90,6 +100,91 @@ const OrderDetail = () => {
       toast.error(error?.message || 'Failed to assign order');
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const handleReassign = async () => {
+    if (!selectedRider) {
+      toast.error("Please select a rider");
+      return;
+    }
+    try {
+      setReassigning(true);
+      const res = await apiService.updateOrderStatus(id as string, 'ASSIGNED', selectedRider) as any;
+      if (res?.success) {
+        setOrder(res.data);
+        toast.success(`Order reassigned successfully`);
+        setShowReassign(false);
+        setSelectedRider("");
+        loadOrder();
+      } else {
+        toast.error(res?.message || 'Failed to reassign order');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to reassign order');
+    } finally {
+      setReassigning(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    try {
+      setCancelling(true);
+      const res = await apiService.cancelOrder(id as string) as any;
+      if (res?.success) {
+        toast.success(`Order #${id?.slice(-4)} cancelled successfully`);
+        setShowCancelDialog(false);
+        loadOrder();
+        // Navigate back after a short delay
+        setTimeout(() => navigate(-1), 1500);
+      } else {
+        toast.error(res?.message || 'Failed to cancel order');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleDeliverOrder = async () => {
+    if (!paymentAmount || parseFloat(paymentAmount) < 0) {
+      toast.error("Please enter a valid payment amount");
+      return;
+    }
+
+    try {
+      setDelivering(true);
+      const totalAmount = parseFloat(order?.totalAmount || 0);
+      let amountToSend = parseFloat(paymentAmount);
+      
+      // Handle payable (we owe customer) - convert to negative for refund
+      if (totalAmount < 0 && amountToSend > 0) {
+        amountToSend = -amountToSend;
+      }
+
+      const res = await apiService.deliverOrder(id as string, {
+        paymentAmount: amountToSend,
+        paymentMethod,
+        notes: paymentNotes || undefined
+      }) as any;
+      
+      if (res?.success) {
+        toast.success(`Order #${id?.slice(-4)} delivered successfully`);
+        setShowDeliverForm(false);
+        setPaymentAmount("");
+        setPaymentMethod("CASH");
+        setPaymentNotes("");
+        loadOrder();
+        // Navigate back after a short delay
+        setTimeout(() => navigate(-1), 1500);
+      } else {
+        toast.error(res?.message || 'Failed to deliver order');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to deliver order');
+    } finally {
+      setDelivering(false);
     }
   };
 
@@ -129,12 +224,14 @@ const OrderDetail = () => {
     );
   }
 
-  const isDelivered = order.status?.toLowerCase() === 'delivered';
-  const hasRider = order.rider && order.rider !== 'Not assigned';
+  const orderStatus = order.status?.toUpperCase() || '';
+  const isCompleted = ['DELIVERED', 'COMPLETED'].includes(orderStatus);
+  const isAssigned = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'CREATED'].includes(orderStatus);
+  const hasRider = order.rider && order.rider !== 'Not assigned' && order.rider?.id;
   const isWalkIn = order.orderType === 'WALKIN' || order.customer?.name === 'Walk-in Customer' || order.customer === 'Walk-in Customer';
 
-  // Check if order is delivered - show completed order view
-  if (isDelivered) {
+  // Check if order is completed (DELIVERED or COMPLETED) - show read-only view
+  if (isCompleted) {
     return (
       <div className="min-h-screen pb-24 md:pb-6">
         {/* Mobile Layout - Completed Order */}
@@ -142,11 +239,14 @@ const OrderDetail = () => {
           {/* Top Section - Green Gradient Header */}
           <div className="bg-gradient-to-br from-green-700 via-green-600 to-green-800 p-6 space-y-4">
             {/* Back Button */}
-            <Link to="/admin/orders">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 mb-4">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white hover:bg-white/20 mb-4"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             
             {/* Header */}
             <div className="flex items-center gap-3 mb-2">
@@ -288,11 +388,14 @@ const OrderDetail = () => {
           <div className="bg-gradient-to-r from-green-500 to-green-700 rounded-3xl p-8 shadow-2xl mb-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-6">
-                <Link to="/admin/orders">
-                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
-                    <ArrowLeft className="h-6 w-6" />
-                  </Button>
-                </Link>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white hover:bg-white/20"
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </Button>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                     <CheckCircle className="h-10 w-10 text-green-600" fill="currentColor" />
@@ -462,11 +565,14 @@ const OrderDetail = () => {
         {/* Top Section - Blue Gradient Header */}
         <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 p-6 space-y-4">
           {/* Back Button */}
-          <Link to="/admin/orders">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 mb-4">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20 mb-4"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           
           {/* Header */}
           <div className="flex items-center gap-3 mb-2">
@@ -552,15 +658,74 @@ const OrderDetail = () => {
               <p className="font-bold text-gray-900">Rider Information</p>
             </div>
             {hasRider ? (
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm text-gray-600">Name</p>
-                  <p className="font-semibold text-gray-900">{order.rider?.name || order.rider}</p>
-                </div>
-                {order.rider?.phone && (
+              <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
-                    <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-semibold text-gray-900">{order.rider.phone}</p>
+                    <p className="text-sm text-gray-600">Name</p>
+                    <p className="font-semibold text-gray-900">{order.rider?.name || order.rider}</p>
+                  </div>
+                  {order.rider?.phone && (
+                    <div>
+                      <p className="text-sm text-gray-600">Phone</p>
+                      <p className="font-semibold text-gray-900">{order.rider.phone}</p>
+                    </div>
+                  )}
+                </div>
+                {/* Reassign Rider Button - Only for assigned orders */}
+                {isAssigned && !showReassign && (
+                  <Button
+                    onClick={() => setShowReassign(true)}
+                    variant="outline"
+                    className="w-full"
+                    size="sm"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reassign Rider
+                  </Button>
+                )}
+                {/* Reassign Rider Form */}
+                {isAssigned && showReassign && (
+                  <div className="space-y-3 pt-3 border-t">
+                    <Label htmlFor="reassignRiderSelect" className="text-sm text-gray-700">
+                      Select New Rider
+                    </Label>
+                    <Select value={selectedRider} onValueChange={setSelectedRider}>
+                      <SelectTrigger id="reassignRiderSelect" className="h-10">
+                        <SelectValue placeholder="Choose a rider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {riders.filter((r: any) => r.isActive && r.id !== order.rider?.id).map((r: any) => (
+                          <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleReassign}
+                        disabled={!selectedRider || reassigning}
+                        className="flex-1"
+                        size="sm"
+                      >
+                        {reassigning ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Reassigning...
+                          </>
+                        ) : (
+                          "Reassign"
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowReassign(false);
+                          setSelectedRider("");
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -590,13 +755,171 @@ const OrderDetail = () => {
                       className="w-full h-12"
                       size="lg"
                     >
-                      {assigning ? "Assigning..." : "Assign Rider"}
+                      {assigning ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Assigning...
+                        </>
+                      ) : (
+                        "Assign Rider"
+                      )}
                     </Button>
                   </>
                 )}
               </div>
             )}
           </div>
+
+          {/* Action Buttons for Assigned Orders */}
+          {isAssigned && (
+            <>
+              {/* Cancel Order Button */}
+              <div className="bg-gradient-to-br from-white to-red-50/30 rounded-2xl p-4 border border-red-100">
+                <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      size="lg"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel Order
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        Cancel Order
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to cancel order #{order.id?.slice(-4)}? 
+                        This action will revert the customer's balance to the amount before this order was created.
+                        <br /><br />
+                        <strong>This action cannot be undone.</strong>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={cancelling}>No, Keep Order</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancelOrder}
+                        disabled={cancelling}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        {cancelling ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Cancelling...
+                          </>
+                        ) : (
+                          "Yes, Cancel Order"
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+
+              {/* Deliver Order Button & Form */}
+              <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-4 border border-green-100">
+                {!showDeliverForm ? (
+                  <Button
+                    onClick={() => setShowDeliverForm(true)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    size="lg"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Deliver Order & Collect Payment
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-bold text-gray-900">Deliver Order</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowDeliverForm(false);
+                          setPaymentAmount("");
+                          setPaymentMethod("CASH");
+                          setPaymentNotes("");
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentAmount">Payment Amount *</Label>
+                        <Input
+                          id="paymentAmount"
+                          type="number"
+                          placeholder="Enter payment amount"
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value)}
+                          min="0"
+                          step="0.01"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Total: RS. {order?.totalAmount || 0} | 
+                          {order?.totalAmount >= 0 ? " Customer owes" : " We owe customer"}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="deliverPaymentMethod">Payment Method *</Label>
+                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                          <SelectTrigger id="deliverPaymentMethod">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CASH">Cash</SelectItem>
+                            <SelectItem value="CARD">Card</SelectItem>
+                            <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                            <SelectItem value="JAZZCASH">JazzCash</SelectItem>
+                            <SelectItem value="EASYPAISA">EasyPaisa</SelectItem>
+                            <SelectItem value="NAYA_PAY">Naya Pay</SelectItem>
+                            <SelectItem value="SADAPAY">SadaPay</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="deliverPaymentNotes">Payment Notes (Optional)</Label>
+                        <Textarea
+                          id="deliverPaymentNotes"
+                          placeholder="Add any notes about this payment..."
+                          value={paymentNotes}
+                          onChange={(e) => setPaymentNotes(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+
+                      <Button
+                        onClick={handleDeliverOrder}
+                        disabled={!paymentAmount || delivering}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        size="lg"
+                      >
+                        {delivering ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Delivering...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Deliver & Collect Payment
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Walk-in Order Completion Form */}
           {order.orderType === 'WALKIN' && order.status === 'CREATED' && (
@@ -615,11 +938,13 @@ const OrderDetail = () => {
       <div className="hidden md:block max-w-4xl mx-auto px-6 py-6">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <Link to="/admin/orders">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <div>
               <h1 className="text-2xl font-bold">Order #{order ? order.id?.slice(-4) : id}</h1>
               <p className="text-muted-foreground">Order Details</p>
@@ -669,15 +994,74 @@ const OrderDetail = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 {hasRider ? (
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Name</p>
-                      <p className="font-medium">{order.rider?.name || order.rider}</p>
-                    </div>
-                    {order.rider?.phone && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
                       <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="font-medium">{order.rider.phone}</p>
+                        <p className="text-sm text-muted-foreground">Name</p>
+                        <p className="font-medium">{order.rider?.name || order.rider}</p>
+                      </div>
+                      {order.rider?.phone && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium">{order.rider.phone}</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Reassign Rider Button - Only for assigned orders */}
+                    {isAssigned && !showReassign && (
+                      <Button
+                        onClick={() => setShowReassign(true)}
+                        variant="outline"
+                        className="w-full"
+                        size="sm"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reassign Rider
+                      </Button>
+                    )}
+                    {/* Reassign Rider Form */}
+                    {isAssigned && showReassign && (
+                      <div className="space-y-3 pt-3 border-t">
+                        <Label htmlFor="reassignRiderSelectDesktop" className="text-sm font-medium">
+                          Select New Rider
+                        </Label>
+                        <Select value={selectedRider} onValueChange={setSelectedRider}>
+                          <SelectTrigger id="reassignRiderSelectDesktop" className="w-full">
+                            <SelectValue placeholder="Choose a rider" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {riders.filter((r: any) => r.isActive && r.id !== order.rider?.id).map((r: any) => (
+                              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleReassign}
+                            disabled={!selectedRider || reassigning}
+                            className="flex-1"
+                            size="sm"
+                          >
+                            {reassigning ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Reassigning...
+                              </>
+                            ) : (
+                              "Reassign"
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setShowReassign(false);
+                              setSelectedRider("");
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -707,7 +1091,14 @@ const OrderDetail = () => {
                           className="w-full"
                           size="lg"
                         >
-                          {assigning ? "Assigning..." : "Assign Rider"}
+                          {assigning ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Assigning...
+                            </>
+                          ) : (
+                            "Assign Rider"
+                          )}
                         </Button>
                       </div>
                     )}
@@ -768,6 +1159,167 @@ const OrderDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Action Buttons for Assigned Orders - Desktop */}
+          {isAssigned && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Cancel Order
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full" size="lg">
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel Order
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          Cancel Order
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to cancel order #{order.id?.slice(-4)}? 
+                          This action will revert the customer's balance to the amount before this order was created.
+                          <br /><br />
+                          <strong>This action cannot be undone.</strong>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={cancelling}>No, Keep Order</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleCancelOrder}
+                          disabled={cancelling}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          {cancelling ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Cancelling...
+                            </>
+                          ) : (
+                            "Yes, Cancel Order"
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    Deliver Order & Collect Payment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!showDeliverForm ? (
+                    <Button
+                      onClick={() => setShowDeliverForm(true)}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      size="lg"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Deliver Order & Collect Payment
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold">Deliver Order</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShowDeliverForm(false);
+                            setPaymentAmount("");
+                            setPaymentMethod("CASH");
+                            setPaymentNotes("");
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="desktopPaymentAmount">Payment Amount *</Label>
+                          <Input
+                            id="desktopPaymentAmount"
+                            type="number"
+                            placeholder="Enter payment amount"
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                            min="0"
+                            step="0.01"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Total: RS. {order?.totalAmount || 0} | 
+                            {order?.totalAmount >= 0 ? " Customer owes" : " We owe customer"}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="desktopDeliverPaymentMethod">Payment Method *</Label>
+                          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                            <SelectTrigger id="desktopDeliverPaymentMethod">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="CASH">Cash</SelectItem>
+                              <SelectItem value="CARD">Card</SelectItem>
+                              <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                              <SelectItem value="JAZZCASH">JazzCash</SelectItem>
+                              <SelectItem value="EASYPAISA">EasyPaisa</SelectItem>
+                              <SelectItem value="NAYA_PAY">Naya Pay</SelectItem>
+                              <SelectItem value="SADAPAY">SadaPay</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="desktopDeliverPaymentNotes">Payment Notes (Optional)</Label>
+                          <Textarea
+                            id="desktopDeliverPaymentNotes"
+                            placeholder="Add any notes about this payment..."
+                            value={paymentNotes}
+                            onChange={(e) => setPaymentNotes(e.target.value)}
+                            rows={3}
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleDeliverOrder}
+                          disabled={!paymentAmount || delivering}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          size="lg"
+                        >
+                          {delivering ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Delivering...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Deliver & Collect Payment
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           {/* Walk-in Order Completion Form */}
           {order.orderType === 'WALKIN' && order.status === 'CREATED' && (

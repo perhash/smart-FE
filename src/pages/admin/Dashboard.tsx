@@ -539,7 +539,11 @@ const AdminDashboard = () => {
                       const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
 
                       return (
-                        <div key={order.id} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                        <div 
+                          key={order.id} 
+                          className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        >
                           <div className="grid grid-cols-1 gap-2">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
@@ -609,7 +613,11 @@ const AdminDashboard = () => {
                       const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
 
                       return (
-                        <div key={order.id} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                        <div 
+                          key={order.id} 
+                          className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        >
                           <div className="grid grid-cols-1 gap-2">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
@@ -949,7 +957,11 @@ const AdminDashboard = () => {
                           const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
 
                           return (
-                            <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <tr 
+                              key={order.id} 
+                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                              onClick={() => navigate(`/admin/orders/${order.id}`)}
+                            >
                               <td className="p-3">
                                 <div>
                                   <p className="text-sm font-semibold text-gray-900">{order.customerName || 'Unknown'}</p>
@@ -1020,7 +1032,11 @@ const AdminDashboard = () => {
                           const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
 
                           return (
-                            <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <tr 
+                              key={order.id} 
+                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                              onClick={() => navigate(`/admin/orders/${order.id}`)}
+                            >
                               <td className="p-3">
                                 <div>
                                   <p className="text-sm font-semibold text-gray-900">{order.customerName || 'Unknown'}</p>
