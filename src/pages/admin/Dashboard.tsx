@@ -163,38 +163,43 @@ const AdminDashboard = () => {
                 <p className="ml-2 text-xs text-white/80">Loading...</p>
               </div>
             </div>
-          ) : dailySummary && (
-            <div 
-              onClick={handleBadgeClick}
-              className={`mb-3 rounded-2xl p-3 border-2 shadow-lg transition-all active:scale-[0.98] ${
-                dailySummary.canClose 
-                  ? 'bg-gradient-to-r from-emerald-500 to-green-500 border-white/50 cursor-pointer hover:from-emerald-600 hover:to-green-600' 
-                  : 'bg-gradient-to-r from-orange-500 to-amber-500 border-white/50 cursor-pointer hover:from-orange-600 hover:to-amber-600'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {dailySummary.canClose ? (
-                    <CheckCircle className="h-5 w-5 text-white" />
-                  ) : (
-                    <AlertTriangle className="h-5 w-5 text-white" />
-                  )}
-                  <div>
-                    <p className="text-sm font-bold text-white">
-                      {dailySummary.canClose ? 'Ready to Close' : 'Orders in Progress'}
-                    </p>
-                    <p className="text-[10px] text-white/90">
-                      {dailySummary.canClose 
-                        ? 'Tap to close' 
-                        : `${dailySummary.inProgressOrdersCount || 0} order${(dailySummary.inProgressOrdersCount || 0) !== 1 ? 's' : ''} pending`
-                      }
-                    </p>
+          ) : dailySummary && (() => {
+            const hasInProgressOrders = (dailySummary.inProgressOrdersCount || 0) > 0;
+            const isReadyToClose = !hasInProgressOrders && dailySummary.canClose;
+            
+            return (
+              <div 
+                onClick={handleBadgeClick}
+                className={`mb-3 rounded-2xl p-3 border-2 shadow-lg transition-all active:scale-[0.98] ${
+                  isReadyToClose
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 border-white/50 cursor-pointer hover:from-emerald-600 hover:to-green-600' 
+                    : 'bg-gradient-to-r from-orange-500 to-amber-500 border-white/50 cursor-pointer hover:from-orange-600 hover:to-amber-600'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {isReadyToClose ? (
+                      <CheckCircle className="h-5 w-5 text-white" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5 text-white" />
+                    )}
+                    <div>
+                      <p className="text-sm font-bold text-white">
+                        {isReadyToClose ? 'Ready to Close' : 'Orders in Progress'}
+                      </p>
+                      <p className="text-[10px] text-white/90">
+                        {isReadyToClose
+                          ? 'Tap to close' 
+                          : `${dailySummary.inProgressOrdersCount || 0} order${(dailySummary.inProgressOrdersCount || 0) !== 1 ? 's' : ''} pending`
+                        }
+                      </p>
+                    </div>
                   </div>
+                  <ArrowRight className="h-4 w-4 text-white" />
                 </div>
-                <ArrowRight className="h-4 w-4 text-white" />
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Today's Progress Cards - Compact */}
           {loadingSummary ? (
@@ -511,38 +516,43 @@ const AdminDashboard = () => {
                 <p className="ml-3 text-base text-white/80">Loading status...</p>
               </div>
             </div>
-          ) : dailySummary && (
-            <div 
-              onClick={handleBadgeClick}
-              className={`mb-6 rounded-3xl p-6 border-2 shadow-xl transition-all cursor-pointer hover:scale-[1.02] ${
-                dailySummary.canClose 
-                  ? 'bg-gradient-to-r from-emerald-500 to-green-500 border-white/50 hover:from-emerald-600 hover:to-green-600' 
-                  : 'bg-gradient-to-r from-orange-500 to-amber-500 border-white/50 hover:from-orange-600 hover:to-amber-600'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  {dailySummary.canClose ? (
-                    <CheckCircle className="h-8 w-8 text-white" />
-                  ) : (
-                    <AlertTriangle className="h-8 w-8 text-white" />
-                  )}
-                  <div>
-                    <p className="text-2xl font-bold text-white">
-                      {dailySummary.canClose ? 'Ready to Close' : 'Orders in Progress'}
-                    </p>
-                    <p className="text-sm text-white/90 mt-1">
-                      {dailySummary.canClose 
-                        ? 'Click to close counter' 
-                        : `${dailySummary.inProgressOrdersCount || 0} order${(dailySummary.inProgressOrdersCount || 0) !== 1 ? 's' : ''} pending`
-                      }
-                    </p>
+          ) : dailySummary && (() => {
+            const hasInProgressOrders = (dailySummary.inProgressOrdersCount || 0) > 0;
+            const isReadyToClose = !hasInProgressOrders && dailySummary.canClose;
+            
+            return (
+              <div 
+                onClick={handleBadgeClick}
+                className={`mb-6 rounded-3xl p-6 border-2 shadow-xl transition-all cursor-pointer hover:scale-[1.02] ${
+                  isReadyToClose
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 border-white/50 hover:from-emerald-600 hover:to-green-600' 
+                    : 'bg-gradient-to-r from-orange-500 to-amber-500 border-white/50 hover:from-orange-600 hover:to-amber-600'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {isReadyToClose ? (
+                      <CheckCircle className="h-8 w-8 text-white" />
+                    ) : (
+                      <AlertTriangle className="h-8 w-8 text-white" />
+                    )}
+                    <div>
+                      <p className="text-2xl font-bold text-white">
+                        {isReadyToClose ? 'Ready to Close' : 'Orders in Progress'}
+                      </p>
+                      <p className="text-sm text-white/90 mt-1">
+                        {isReadyToClose
+                          ? 'Click to close counter' 
+                          : `${dailySummary.inProgressOrdersCount || 0} order${(dailySummary.inProgressOrdersCount || 0) !== 1 ? 's' : ''} pending`
+                        }
+                      </p>
+                    </div>
                   </div>
+                  <ArrowRight className="h-6 w-6 text-white" />
                 </div>
-                <ArrowRight className="h-6 w-6 text-white" />
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Today's Progress Cards - Desktop */}
           {loadingSummary ? (
