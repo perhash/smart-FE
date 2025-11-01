@@ -142,8 +142,8 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
         setPaymentNotes("");
         setOpen(false);
         
-        // Refresh page or specific data
-        window.location.reload();
+        // Dispatch custom event to refresh dashboard data without full page reload
+        window.dispatchEvent(new CustomEvent('refreshDashboard'));
       } else {
         toast.error((response as any).message || 'Failed to clear bill');
       }

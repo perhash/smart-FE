@@ -69,6 +69,12 @@ const AdminDashboard = () => {
 
     fetchDashboardData();
 
+    // Listen for custom refresh event (e.g., from ClearBillDialog)
+    const handleRefresh = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener('refreshDashboard', handleRefresh);
+
     // Set up Supabase real-time subscription for orders
     const channel = supabase
       .channel('dashboard-orders-changes')
@@ -90,11 +96,12 @@ const AdminDashboard = () => {
 
     channelRef.current = channel;
 
-    // Cleanup subscription on unmount
+    // Cleanup subscription and event listeners on unmount
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
+      window.removeEventListener('refreshDashboard', handleRefresh);
     };
   }, []);
 
