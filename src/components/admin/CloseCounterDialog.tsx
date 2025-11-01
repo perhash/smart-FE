@@ -25,10 +25,14 @@ import { apiService } from "@/services/api";
 
 interface CloseCounterDialogProps {
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CloseCounterDialog({ trigger }: CloseCounterDialogProps) {
-  const [open, setOpen] = useState(false);
+export function CloseCounterDialog({ trigger, open: controlledOpen, onOpenChange }: CloseCounterDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [summary, setSummary] = useState<any>(null);
@@ -95,9 +99,11 @@ export function CloseCounterDialog({ trigger }: CloseCounterDialogProps) {
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          {trigger || <Button variant="outline">Close Counter</Button>}
-        </DialogTrigger>
+        {trigger && (
+          <DialogTrigger asChild>
+            {trigger}
+          </DialogTrigger>
+        )}
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Daily Closing Summary</DialogTitle>

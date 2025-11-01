@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,17 @@ import { apiService } from "@/services/api";
 
 const Customers = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  
+  // Check URL params for filter
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'receivable' || filterParam === 'payable') {
+      setStatusFilter(filterParam);
+    }
+  }, [searchParams]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
