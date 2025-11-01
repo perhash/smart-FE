@@ -131,6 +131,24 @@ const AdminDashboard = () => {
     }
   };
 
+  const getPaymentStatusBadge = (paymentStatus: string) => {
+    const status = paymentStatus?.toUpperCase() || 'NOT_PAID';
+    switch (status) {
+      case 'PAID':
+        return { label: 'Paid', variant: 'default' as const, className: 'bg-green-500 text-white hover:bg-green-600' };
+      case 'NOT_PAID':
+        return { label: 'Not Paid', variant: 'destructive' as const, className: 'bg-red-500 text-white hover:bg-red-600' };
+      case 'PARTIAL':
+        return { label: 'Partial', variant: 'secondary' as const, className: 'bg-yellow-500 text-white hover:bg-yellow-600' };
+      case 'OVERPAID':
+        return { label: 'Overpaid', variant: 'outline' as const, className: 'bg-blue-500 text-white hover:bg-blue-600' };
+      case 'REFUND':
+        return { label: 'Refund', variant: 'outline' as const, className: 'bg-purple-500 text-white hover:bg-purple-600' };
+      default:
+        return { label: 'Unknown', variant: 'outline' as const, className: 'bg-gray-500 text-white hover:bg-gray-600' };
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PK', {
       style: 'decimal',
@@ -456,6 +474,9 @@ const AdminDashboard = () => {
                   const totalAmount = typeof activity.totalAmount === 'number' ? activity.totalAmount : parseFloat(activity.totalAmount) || 0;
                   const paidAmount = typeof activity.paidAmount === 'number' ? activity.paidAmount : parseFloat(activity.paidAmount) || 0;
 
+                  // Get payment status badge info
+                  const paymentStatusInfo = getPaymentStatusBadge(activity.paymentStatus);
+
                   return (
                     <div key={activity.id} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
                       <div className="flex items-start gap-3">
@@ -463,12 +484,15 @@ const AdminDashboard = () => {
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <p className="text-sm font-semibold text-gray-900 line-clamp-2">
                               {activity.text}
                             </p>
                             <Badge variant={orderType === "WALKIN" ? "secondary" : orderType === "CLEARBILL" ? "outline" : "default"} className="text-xs shrink-0">
                               {orderTypeDisplay}
+                            </Badge>
+                            <Badge className={`text-xs shrink-0 ${paymentStatusInfo.className}`}>
+                              {paymentStatusInfo.label}
                             </Badge>
                           </div>
                           <div className="space-y-1">
@@ -746,6 +770,9 @@ const AdminDashboard = () => {
                   const totalAmount = typeof activity.totalAmount === 'number' ? activity.totalAmount : parseFloat(activity.totalAmount) || 0;
                   const paidAmount = typeof activity.paidAmount === 'number' ? activity.paidAmount : parseFloat(activity.paidAmount) || 0;
 
+                  // Get payment status badge info
+                  const paymentStatusInfo = getPaymentStatusBadge(activity.paymentStatus);
+
                   return (
                     <div key={activity.id} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-start gap-4">
@@ -754,12 +781,15 @@ const AdminDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2 flex-1">
+                            <div className="flex items-center gap-2 flex-1 flex-wrap">
                               <p className="text-sm font-semibold text-gray-900 line-clamp-2">
                                 {activity.text}
                               </p>
                               <Badge variant={orderType === "WALKIN" ? "secondary" : orderType === "CLEARBILL" ? "outline" : "default"} className="text-xs shrink-0">
                                 {orderTypeDisplay}
+                              </Badge>
+                              <Badge className={`text-xs shrink-0 ${paymentStatusInfo.className}`}>
+                                {paymentStatusInfo.label}
                               </Badge>
                             </div>
                             <Badge variant={activity.status === "success" ? "default" : activity.status === "new" ? "secondary" : "outline"}>
