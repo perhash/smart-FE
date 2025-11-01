@@ -50,7 +50,13 @@ const AdminDashboard = () => {
         }
 
         if ((summaryResponse as any).success) {
-          setDailySummary((summaryResponse as any).data);
+          const summaryData = (summaryResponse as any).data;
+          console.log('Daily Summary:', {
+            inProgressOrdersCount: summaryData.inProgressOrdersCount,
+            canClose: summaryData.canClose,
+            summaryData
+          });
+          setDailySummary(summaryData);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -164,8 +170,9 @@ const AdminDashboard = () => {
               </div>
             </div>
           ) : dailySummary && (() => {
+            // Check if there are any orders in progress (PENDING, ASSIGNED, IN_PROGRESS, CREATED)
             const hasInProgressOrders = (dailySummary.inProgressOrdersCount || 0) > 0;
-            const isReadyToClose = !hasInProgressOrders && dailySummary.canClose;
+            const isReadyToClose = !hasInProgressOrders;
             
             return (
               <div 
@@ -517,8 +524,9 @@ const AdminDashboard = () => {
               </div>
             </div>
           ) : dailySummary && (() => {
+            // Check if there are any orders in progress (PENDING, ASSIGNED, IN_PROGRESS, CREATED)
             const hasInProgressOrders = (dailySummary.inProgressOrdersCount || 0) > 0;
-            const isReadyToClose = !hasInProgressOrders && dailySummary.canClose;
+            const isReadyToClose = !hasInProgressOrders;
             
             return (
               <div 
