@@ -149,24 +149,24 @@ const AdminDashboard = () => {
       {/* Mobile Layout */}
       <div className="md:hidden">
         {/* Top Section - Blue Gradient Header */}
-        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-4 pb-6">
-          {/* Welcome Section - Compact */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-              <Droplet className="h-6 w-6 text-cyan-600" fill="currentColor" />
+        <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-3 pb-4">
+          {/* Welcome Section - More Compact */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
+              <Droplet className="h-5 w-5 text-cyan-600" fill="currentColor" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">Welcome back</h1>
-              <p className="text-sm text-white/90">{adminName}</p>
+              <h1 className="text-base font-bold text-white leading-tight">Welcome back</h1>
+              <p className="text-xs text-white/90 leading-tight">{adminName}</p>
             </div>
           </div>
 
-          {/* Badge Section - Ready to Close / Orders in Progress - Compact */}
+          {/* Badge Section - Ready to Close / Orders in Progress - More Compact */}
           {loadingSummary ? (
-            <div className="mb-3 bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/30">
+            <div className="mb-2 bg-white/10 backdrop-blur-sm rounded-xl p-2 border border-white/30">
               <div className="flex items-center justify-center">
-                <Loader2 className="h-4 w-4 animate-spin text-white" />
-                <p className="ml-2 text-xs text-white/80">Loading...</p>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                <p className="ml-1.5 text-[10px] text-white/80">Loading...</p>
               </div>
             </div>
           ) : dailySummary && (() => {
@@ -177,24 +177,24 @@ const AdminDashboard = () => {
             return (
               <div 
                 onClick={handleBadgeClick}
-                className={`mb-3 rounded-2xl p-3 border-2 shadow-lg transition-all active:scale-[0.98] ${
+                className={`mb-2 rounded-xl p-2 border-2 shadow-lg transition-all active:scale-[0.98] ${
                   isReadyToClose
                     ? 'bg-gradient-to-r from-emerald-500 to-green-500 border-white/50 cursor-pointer hover:from-emerald-600 hover:to-green-600' 
                     : 'bg-gradient-to-r from-orange-500 to-amber-500 border-white/50 cursor-pointer hover:from-orange-600 hover:to-amber-600'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     {isReadyToClose ? (
-                      <CheckCircle className="h-5 w-5 text-white" />
+                      <CheckCircle className="h-4 w-4 text-white" />
                     ) : (
-                      <AlertTriangle className="h-5 w-5 text-white" />
+                      <AlertTriangle className="h-4 w-4 text-white" />
                     )}
                     <div>
-                      <p className="text-sm font-bold text-white">
+                      <p className="text-xs font-bold text-white leading-tight">
                         {isReadyToClose ? 'Ready to Close' : 'Orders in Progress'}
                       </p>
-                      <p className="text-[10px] text-white/90">
+                      <p className="text-[9px] text-white/90 leading-tight">
                         {isReadyToClose
                           ? 'Tap to close' 
                           : `${dailySummary.inProgressOrdersCount || 0} order${(dailySummary.inProgressOrdersCount || 0) !== 1 ? 's' : ''} pending`
@@ -202,19 +202,19 @@ const AdminDashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-white" />
+                  <ArrowRight className="h-3.5 w-3.5 text-white" />
                 </div>
               </div>
             );
           })()}
 
-          {/* Today's Progress Cards - Compact */}
+          {/* Today's Progress Cards - More Compact */}
           {loadingSummary ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/30">
-                  <div className="flex items-center justify-center py-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                <div key={i} className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border border-white/30">
+                  <div className="flex items-center justify-center py-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                   </div>
                 </div>
               ))}
@@ -222,87 +222,87 @@ const AdminDashboard = () => {
           ) : dailySummary ? (
             <>
               {/* Row 1: Receivable & Payable (Clickable) */}
-              <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="grid grid-cols-2 gap-1.5 mb-1.5">
                 <div 
                   onClick={handleReceivableClick}
-                  className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 border-2 border-white/50 cursor-pointer active:scale-[0.98] transition-all hover:bg-white/30"
+                  className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border-2 border-white/50 cursor-pointer active:scale-[0.98] transition-all hover:bg-white/30"
                 >
                   <div className="flex flex-col items-start">
-                    <WalletIcon className="h-5 w-5 text-white mb-1" />
-                    <p className="text-[10px] text-white/80 mb-0.5">Receivable</p>
-                    <p className="text-lg font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.customerReceivable || 0)}</p>
-                    <p className="text-[10px] text-white/70 mt-0.5 flex items-center gap-1">
-                      Tap <ArrowRight className="h-2.5 w-2.5" />
+                    <WalletIcon className="h-4 w-4 text-white mb-0.5" />
+                    <p className="text-[9px] text-white/80 mb-0.5 leading-tight">Receivable</p>
+                    <p className="text-base font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.customerReceivable || 0)}</p>
+                    <p className="text-[9px] text-white/70 mt-0.5 flex items-center gap-0.5">
+                      Tap <ArrowRight className="h-2 w-2" />
                     </p>
                   </div>
                 </div>
                 <div 
                   onClick={handlePayableClick}
-                  className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 border-2 border-white/50 cursor-pointer active:scale-[0.98] transition-all hover:bg-white/30"
+                  className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border-2 border-white/50 cursor-pointer active:scale-[0.98] transition-all hover:bg-white/30"
                 >
                   <div className="flex flex-col items-start">
-                    <WalletIcon className="h-5 w-5 text-white mb-1" />
-                    <p className="text-[10px] text-white/80 mb-0.5">Payable</p>
-                    <p className="text-lg font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.customerPayable || 0)}</p>
-                    <p className="text-[10px] text-white/70 mt-0.5 flex items-center gap-1">
-                      Tap <ArrowRight className="h-2.5 w-2.5" />
+                    <WalletIcon className="h-4 w-4 text-white mb-0.5" />
+                    <p className="text-[9px] text-white/80 mb-0.5 leading-tight">Payable</p>
+                    <p className="text-base font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.customerPayable || 0)}</p>
+                    <p className="text-[9px] text-white/70 mt-0.5 flex items-center gap-0.5">
+                      Tap <ArrowRight className="h-2 w-2" />
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Row 2: Orders & Bottles */}
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/30">
+              <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border border-white/30">
                   <div className="flex flex-col">
-                    <Package className="h-5 w-5 text-white mb-1" />
-                    <p className="text-[10px] text-white/80 mb-0.5">Orders</p>
-                    <p className="text-lg font-bold text-white leading-tight">{dailySummary.totalOrders || 0}</p>
-                    <p className="text-[10px] text-white/70 mt-0.5">Today</p>
+                    <Package className="h-4 w-4 text-white mb-0.5" />
+                    <p className="text-[9px] text-white/80 mb-0.5 leading-tight">Orders</p>
+                    <p className="text-base font-bold text-white leading-tight">{dailySummary.totalOrders || 0}</p>
+                    <p className="text-[9px] text-white/70 mt-0.5 leading-tight">Today</p>
                   </div>
                 </div>
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/30">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border border-white/30">
                   <div className="flex flex-col">
-                    <Droplet className="h-5 w-5 text-white mb-1" fill="currentColor" />
-                    <p className="text-[10px] text-white/80 mb-0.5">Bottles</p>
-                    <p className="text-lg font-bold text-white leading-tight">{dailySummary.totalBottles || 0}</p>
-                    <p className="text-[10px] text-white/70 mt-0.5">Today</p>
+                    <Droplet className="h-4 w-4 text-white mb-0.5" fill="currentColor" />
+                    <p className="text-[9px] text-white/80 mb-0.5 leading-tight">Bottles</p>
+                    <p className="text-base font-bold text-white leading-tight">{dailySummary.totalBottles || 0}</p>
+                    <p className="text-[9px] text-white/70 mt-0.5 leading-tight">Today</p>
                   </div>
                 </div>
               </div>
 
               {/* Row 3: Order Amount & Paid Amount */}
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/30">
+              <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border border-white/30">
                   <div className="flex flex-col">
-                    <DollarSign className="h-5 w-5 text-white mb-1" />
-                    <p className="text-[10px] text-white/80 mb-0.5">Order Amount</p>
-                    <p className="text-lg font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.totalCurrentOrderAmount || 0)}</p>
+                    <DollarSign className="h-4 w-4 text-white mb-0.5" />
+                    <p className="text-[9px] text-white/80 mb-0.5 leading-tight">Order Amount</p>
+                    <p className="text-base font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.totalCurrentOrderAmount || 0)}</p>
                   </div>
                 </div>
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/30">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2 border border-white/30">
                   <div className="flex flex-col">
-                    <CheckCircle className="h-5 w-5 text-white mb-1" />
-                    <p className="text-[10px] text-white/80 mb-0.5">Paid Amount</p>
-                    <p className="text-lg font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.totalPaidAmount || 0)}</p>
+                    <CheckCircle className="h-4 w-4 text-white mb-0.5" />
+                    <p className="text-[9px] text-white/80 mb-0.5 leading-tight">Paid Amount</p>
+                    <p className="text-base font-bold text-white leading-tight">RS. {formatCurrency(dailySummary.totalPaidAmount || 0)}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Balance Cleared - Full Width - Compact */}
-              <div className={`rounded-2xl p-3 border-2 mb-3 ${
+              {/* Balance Cleared - Full Width - More Compact */}
+              <div className={`rounded-xl p-2 border-2 mb-2 ${
                 (dailySummary.balanceClearedToday || 0) >= 0 
                   ? 'bg-red-500/90 border-red-300/50' 
                   : 'bg-green-500/90 border-green-300/50'
               }`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-white mb-0.5">
+                    <p className="text-[11px] font-bold text-white mb-0.5 leading-tight">
                       {(dailySummary.balanceClearedToday || 0) >= 0 ? 'Udhaar' : 'Recovery'}
                     </p>
-                    <p className="text-[10px] text-white/90">Balance Cleared</p>
+                    <p className="text-[9px] text-white/90 leading-tight">Balance Cleared</p>
                   </div>
-                  <p className="text-xl font-bold text-white">
+                  <p className="text-lg font-bold text-white leading-tight">
                     RS. {formatCurrency(Math.abs(dailySummary.balanceClearedToday || 0))}
                   </p>
                 </div>
@@ -312,13 +312,13 @@ const AdminDashboard = () => {
               {(dailySummary.walkInAmount > 0 || dailySummary.clearBillAmount > 0 || (dailySummary.riderCollections && dailySummary.riderCollections.length > 0)) && (
                 <Collapsible open={collectionsOpen} onOpenChange={setCollectionsOpen}>
                   <CollapsibleTrigger asChild>
-                    <div className="bg-gradient-to-r from-purple-500/80 to-indigo-500/80 backdrop-blur-sm rounded-2xl p-3 border border-purple-300/50 cursor-pointer active:scale-[0.98] transition-all mb-3">
+                    <div className="bg-gradient-to-r from-purple-500/80 to-indigo-500/80 backdrop-blur-sm rounded-xl p-2 border border-purple-300/50 cursor-pointer active:scale-[0.98] transition-all mb-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Receipt className="h-4 w-4 text-white" />
+                        <div className="flex items-center gap-1.5">
+                          <Receipt className="h-3.5 w-3.5 text-white" />
                           <div className="flex flex-col items-start">
-                            <p className="text-[10px] text-white/90 mb-0.5">Collections Summary</p>
-                            <p className="text-xs font-bold text-white">
+                            <p className="text-[9px] text-white/90 mb-0.5 leading-tight">Collections Summary</p>
+                            <p className="text-[10px] font-bold text-white leading-tight">
                               {[
                                 dailySummary.walkInAmount > 0 ? 'Walk-in' : null,
                                 dailySummary.clearBillAmount > 0 ? 'Clear Bill' : null,
@@ -328,55 +328,55 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                         {collectionsOpen ? (
-                          <ChevronUp className="h-4 w-4 text-white" />
+                          <ChevronUp className="h-3.5 w-3.5 text-white" />
                         ) : (
-                          <ChevronDown className="h-4 w-4 text-white" />
+                          <ChevronDown className="h-3.5 w-3.5 text-white" />
                         )}
                       </div>
                     </div>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div className="space-y-2 mb-3">
+                    <div className="space-y-1.5 mb-2">
                       {/* Walk-in Amount */}
                       {dailySummary.walkInAmount > 0 && (
-                        <div className="bg-cyan-500/80 backdrop-blur-sm rounded-xl p-2.5 border border-cyan-300/40">
+                        <div className="bg-cyan-500/80 backdrop-blur-sm rounded-lg p-2 border border-cyan-300/40">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Users className="h-3.5 w-3.5 text-white" />
-                              <span className="text-xs font-semibold text-white">Walk-in Sales</span>
+                            <div className="flex items-center gap-1.5">
+                              <Users className="h-3 w-3 text-white" />
+                              <span className="text-[10px] font-semibold text-white">Walk-in Sales</span>
                             </div>
-                            <span className="text-xs font-bold text-white">RS. {formatCurrency(dailySummary.walkInAmount)}</span>
+                            <span className="text-[10px] font-bold text-white">RS. {formatCurrency(dailySummary.walkInAmount)}</span>
                           </div>
                         </div>
                       )}
 
                       {/* Clear Bill Amount */}
                       {dailySummary.clearBillAmount > 0 && (
-                        <div className="bg-indigo-500/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-300/40">
+                        <div className="bg-indigo-500/80 backdrop-blur-sm rounded-lg p-2 border border-indigo-300/40">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Receipt className="h-3.5 w-3.5 text-white" />
-                              <span className="text-xs font-semibold text-white">Clear Bill Sales</span>
+                            <div className="flex items-center gap-1.5">
+                              <Receipt className="h-3 w-3 text-white" />
+                              <span className="text-[10px] font-semibold text-white">Clear Bill Sales</span>
                             </div>
-                            <span className="text-xs font-bold text-white">RS. {formatCurrency(dailySummary.clearBillAmount)}</span>
+                            <span className="text-[10px] font-bold text-white">RS. {formatCurrency(dailySummary.clearBillAmount)}</span>
                           </div>
                         </div>
                       )}
 
                       {/* Rider Collections */}
                       {dailySummary.riderCollections && dailySummary.riderCollections.length > 0 && (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 mb-1 px-1">
-                            <TruckIcon className="h-3.5 w-3.5 text-white/90" />
-                            <span className="text-[10px] font-semibold text-white/90">Rider Collections</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 mb-0.5 px-1">
+                            <TruckIcon className="h-3 w-3 text-white/90" />
+                            <span className="text-[9px] font-semibold text-white/90">Rider Collections</span>
                           </div>
                           {dailySummary.riderCollections.map((rc: any, idx: number) => (
-                            <div key={idx} className="bg-purple-400/60 backdrop-blur-sm rounded-xl p-2.5 border border-purple-300/40 ml-5">
+                            <div key={idx} className="bg-purple-400/60 backdrop-blur-sm rounded-lg p-2 border border-purple-300/40 ml-4">
                               <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-white">{rc.riderName || `Rider ${idx + 1}`}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-white">RS. {formatCurrency(rc.amount || 0)}</span>
-                                  <span className="text-[10px] text-white/80">({rc.ordersCount || 0})</span>
+                                <span className="text-[10px] font-semibold text-white leading-tight">{rc.riderName || `Rider ${idx + 1}`}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-bold text-white">RS. {formatCurrency(rc.amount || 0)}</span>
+                                  <span className="text-[9px] text-white/80">({rc.ordersCount || 0})</span>
                                 </div>
                               </div>
                             </div>
@@ -391,41 +391,41 @@ const AdminDashboard = () => {
           ) : null}
         </div>
 
-        {/* White Section Below - Compact */}
-        <div className="bg-white rounded-t-3xl -mt-5 p-4">
+        {/* White Section Below - More Compact */}
+        <div className="bg-white rounded-t-3xl -mt-4 p-3">
           {/* Quick Actions Section */}
-          <div className="mb-4">
-            <h2 className="text-base font-bold mb-3 text-gray-900">Quick Actions</h2>
+          <div className="mb-0">
+            <h2 className="text-sm font-bold mb-2 text-gray-900">Quick Actions</h2>
             
             {/* 2 Buttons: Create Order and Clear Bill - Side by side */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               <CreateOrderDialog trigger={
-                <Button className="h-16 flex-col gap-1.5 bg-gradient-to-br from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 text-white shadow-lg active:scale-[0.97] transition-all py-2">
-                  <Plus className="h-5 w-5" />
-                  <span className="text-xs font-semibold">Create Order</span>
+                <Button className="h-12 flex-col gap-1 bg-gradient-to-br from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 text-white shadow-lg active:scale-[0.97] transition-all py-1.5">
+                  <Plus className="h-4 w-4" />
+                  <span className="text-[10px] font-semibold leading-tight">Create Order</span>
                 </Button>
               } />
               <ClearBillDialog trigger={
-                <Button variant="outline" className="h-16 flex-col gap-1.5 border-2 border-cyan-200 hover:bg-cyan-50 active:scale-[0.97] transition-all py-2">
-                  <Receipt className="h-5 w-5 text-cyan-600" />
-                  <span className="text-xs font-semibold text-gray-900">Clear Bill</span>
+                <Button variant="outline" className="h-12 flex-col gap-1 border-2 border-cyan-200 hover:bg-cyan-50 active:scale-[0.97] transition-all py-1.5">
+                  <Receipt className="h-4 w-4 text-cyan-600" />
+                  <span className="text-[10px] font-semibold text-gray-900 leading-tight">Clear Bill</span>
                 </Button>
               } />
             </div>
             
             {/* Add Customer Button - Full width below */}
             <AddCustomerDialog trigger={
-              <Button variant="outline" className="w-full h-14 flex-row gap-2 border-2 border-cyan-200 hover:bg-cyan-50 active:scale-[0.97] transition-all mt-2">
-                <Plus className="h-5 w-5 text-cyan-600" />
-                <span className="text-sm font-semibold text-gray-900">Add Customer</span>
+              <Button variant="outline" className="w-full h-11 flex-row gap-1.5 border-2 border-cyan-200 hover:bg-cyan-50 active:scale-[0.97] transition-all mt-1.5">
+                <Plus className="h-4 w-4 text-cyan-600" />
+                <span className="text-xs font-semibold text-gray-900">Add Customer</span>
               </Button>
             } />
           </div>
 
 
-          {/* Recent Activities - Compact */}
-          <div>
-            <h2 className="text-base font-bold mb-3 text-gray-900">Recent Activities</h2>
+          {/* Recent Activities - More Compact */}
+          <div className="mt-3">
+            <h2 className="text-sm font-bold mb-2 text-gray-900">Recent Activities</h2>
 
             <div className="space-y-3">
               {recentActivities.length === 0 ? (
