@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, TruckIcon, Package, DollarSign, Plus, Receipt, Calendar, Wallet, CheckCircle, AlertTriangle, ArrowRight, Wallet as WalletIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, TruckIcon, Package, DollarSign, Plus, Receipt, Calendar, Wallet, CheckCircle, AlertTriangle, ArrowRight, Wallet as WalletIcon, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { CreateOrderDialog } from "@/components/admin/CreateOrderDialog";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
 import { ClearBillDialog } from "@/components/admin/ClearBillDialog";
 import { CloseCounterDialog } from "@/components/admin/CloseCounterDialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiService } from "@/services/api";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +30,9 @@ const AdminDashboard = () => {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'assigned' | 'completed'>('assigned');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
@@ -155,6 +161,32 @@ const AdminDashboard = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // Filter orders based on tab, search, and payment status
+  const getFilteredOrders = () => {
+    return recentActivities.filter((order: any) => {
+      // Tab filter: Assigned (PENDING, ASSIGNED, IN_PROGRESS, CREATED) or Completed (DELIVERED, COMPLETED)
+      const status = order.status?.toUpperCase() || '';
+      const isAssigned = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'CREATED'].includes(status);
+      const isCompleted = ['DELIVERED', 'COMPLETED'].includes(status);
+      
+      const tabMatch = activeTab === 'assigned' ? isAssigned : isCompleted;
+      
+      // Search filter: customer name or house number
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery || 
+        (order.customerName && order.customerName.toLowerCase().includes(searchLower)) ||
+        (order.houseNo && order.houseNo.toLowerCase().includes(searchLower)) ||
+        (order.orderId && order.orderId.toLowerCase().includes(searchLower));
+      
+      // Payment status filter
+      const paymentStatus = order.paymentStatus?.toUpperCase() || 'NOT_PAID';
+      const matchesPayment = paymentStatusFilter === 'all' || 
+        paymentStatus === paymentStatusFilter.toUpperCase();
+      
+      return tabMatch && matchesSearch && matchesPayment;
+    });
   };
 
   const handleReceivableClick = () => {
@@ -448,86 +480,188 @@ const AdminDashboard = () => {
           </div>
 
 
-          {/* Recent Activities - Slightly Compact */}
+          {/* Today's Orders - Tabular Form */}
           <div className="mt-4">
-            <h2 className="text-sm font-bold mb-2.5 text-gray-900">Recent Activities</h2>
-
-            <div className="space-y-3">
-              {recentActivities.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                  <p className="text-gray-500">No recent activities</p>
-                </div>
-              ) : (
-                recentActivities.map((activity: any) => {
-                  const Icon = getActivityIcon(activity.status);
-                  const bgColor = getActivityColor(activity.status);
-                  // orderType comes from backend as enum: WALKIN, DELIVERY, CLEARBILL
-                  const orderType = activity.orderType || 'DELIVERY';
-                  
-                  // Convert to display name
-                  const orderTypeDisplay = orderType === 'WALKIN' ? 'Walk-in' : 
-                                         orderType === 'CLEARBILL' ? 'Clear Bill' : 
-                                         'Delivery';
-
-                  // Ensure amounts are numbers
-                  const totalAmount = typeof activity.totalAmount === 'number' ? activity.totalAmount : parseFloat(activity.totalAmount) || 0;
-                  const paidAmount = typeof activity.paidAmount === 'number' ? activity.paidAmount : parseFloat(activity.paidAmount) || 0;
-
-                  // Get payment status badge info
-                  const paymentStatusInfo = getPaymentStatusBadge(activity.paymentStatus);
-
-                  return (
-                    <div key={activity.id} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 ${bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <p className="text-sm font-semibold text-gray-900 line-clamp-2">
-                              {activity.text}
-                            </p>
-                            <Badge variant={orderType === "WALKIN" ? "secondary" : orderType === "CLEARBILL" ? "outline" : "default"} className="text-xs shrink-0">
-                              {orderTypeDisplay}
-                            </Badge>
-                            <Badge className={`text-xs shrink-0 ${paymentStatusInfo.className}`}>
-                              {paymentStatusInfo.label}
-                            </Badge>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs text-gray-500">
-                              {activity.time}
-                              {activity.date && (
-                                <span className="ml-1 text-gray-400">
-                                  • {activity.date}
-                                </span>
-                              )}
-                            </p>
-                            {activity.deliveredAtFormatted && (
-                              <p className="text-xs text-green-600 font-medium">
-                                Delivered: {activity.deliveredAtFormatted}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-3 text-xs">
-                              <span className="text-gray-600">
-                                Total: <span className="font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
-                              </span>
-                              <span className="text-gray-600">
-                                Paid: <span className="font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Badge variant={activity.status === "success" ? "default" : activity.status === "new" ? "secondary" : "outline"}>
-                          {activity.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            <h2 className="text-sm font-bold mb-3 text-gray-900">Today's Orders</h2>
+            
+            {/* Search and Filter Bar */}
+            <div className="flex flex-col gap-2 mb-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by customer name or house number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-9 text-sm"
+                />
+              </div>
+              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Payment Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payment Status</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="not_paid">Not Paid</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="overpaid">Overpaid</SelectItem>
+                  <SelectItem value="refund">Refund</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'assigned' | 'completed')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-3">
+                <TabsTrigger value="assigned" className="text-xs">Assigned</TabsTrigger>
+                <TabsTrigger value="completed" className="text-xs">Completed</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="assigned" className="mt-0">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-6 w-6 mx-auto animate-spin text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-500">Loading orders...</p>
+                  </div>
+                ) : getFilteredOrders().length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                    <Package className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                    <p className="text-xs text-gray-500">No assigned orders found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {getFilteredOrders().map((order: any) => {
+                      const paymentStatusInfo = getPaymentStatusBadge(order.paymentStatus);
+                      const orderTypeDisplay = order.orderType === 'WALKIN' ? 'Walk-in' : 
+                                             order.orderType === 'CLEARBILL' ? 'Clear Bill' : 
+                                             'Delivery';
+                      const totalAmount = typeof order.totalAmount === 'number' ? order.totalAmount : parseFloat(order.totalAmount) || 0;
+                      const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
+
+                      return (
+                        <div key={order.id} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                          <div className="grid grid-cols-1 gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                  {order.customerName || 'Unknown'}
+                                </p>
+                                {order.houseNo && (
+                                  <p className="text-xs text-gray-500">House: {order.houseNo}</p>
+                                )}
+                              </div>
+                              <Badge className={`text-[10px] shrink-0 ${paymentStatusInfo.className}`}>
+                                {paymentStatusInfo.label}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-gray-500">Type:</span>
+                                <Badge variant="outline" className="ml-1 text-[10px]">{orderTypeDisplay}</Badge>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-gray-500">Order:</span>
+                                <span className="ml-1 font-semibold">#{order.orderId}</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs border-t pt-2">
+                              <div>
+                                <span className="text-gray-500">Total:</span>
+                                <span className="ml-1 font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Paid:</span>
+                                <span className="ml-1 font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
+                              </div>
+                            </div>
+                            {order.riderName && (
+                              <div className="text-xs text-gray-500 border-t pt-2">
+                                Rider: <span className="font-medium">{order.riderName}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed" className="mt-0">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-6 w-6 mx-auto animate-spin text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-500">Loading orders...</p>
+                  </div>
+                ) : getFilteredOrders().length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                    <CheckCircle className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                    <p className="text-xs text-gray-500">No completed orders found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {getFilteredOrders().map((order: any) => {
+                      const paymentStatusInfo = getPaymentStatusBadge(order.paymentStatus);
+                      const orderTypeDisplay = order.orderType === 'WALKIN' ? 'Walk-in' : 
+                                             order.orderType === 'CLEARBILL' ? 'Clear Bill' : 
+                                             'Delivery';
+                      const totalAmount = typeof order.totalAmount === 'number' ? order.totalAmount : parseFloat(order.totalAmount) || 0;
+                      const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
+
+                      return (
+                        <div key={order.id} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                          <div className="grid grid-cols-1 gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                  {order.customerName || 'Unknown'}
+                                </p>
+                                {order.houseNo && (
+                                  <p className="text-xs text-gray-500">House: {order.houseNo}</p>
+                                )}
+                              </div>
+                              <Badge className={`text-[10px] shrink-0 ${paymentStatusInfo.className}`}>
+                                {paymentStatusInfo.label}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-gray-500">Type:</span>
+                                <Badge variant="outline" className="ml-1 text-[10px]">{orderTypeDisplay}</Badge>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-gray-500">Order:</span>
+                                <span className="ml-1 font-semibold">#{order.orderId}</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs border-t pt-2">
+                              <div>
+                                <span className="text-gray-500">Total:</span>
+                                <span className="ml-1 font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Paid:</span>
+                                <span className="ml-1 font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
+                              </div>
+                            </div>
+                            {order.deliveredAtFormatted && (
+                              <div className="text-xs text-green-600 border-t pt-2">
+                                Delivered: <span className="font-medium">{order.deliveredAtFormatted}</span>
+                              </div>
+                            )}
+                            {order.riderName && (
+                              <div className="text-xs text-gray-500">
+                                Rider: <span className="font-medium">{order.riderName}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
@@ -741,91 +875,190 @@ const AdminDashboard = () => {
           </div>
 
 
-          {/* Recent Activities */}
+          {/* Today's Orders */}
           <div>
             <div className="flex items-center gap-2 mb-6">
               <Package className="h-6 w-6 text-cyan-600" />
-              <h2 className="text-2xl font-bold text-gray-900">Recent Activities</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Today's Orders</h2>
             </div>
- 
-            <div className="grid gap-4 md:grid-cols-2 max-h-[250px] overflow-y-auto pr-2">
-              {recentActivities.length === 0 ? (
-                <div className="col-span-2 text-center py-12">
-                  <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">No recent activities</p>
-                </div>
-              ) : (
-                recentActivities.map((activity: any) => {
-                  const Icon = getActivityIcon(activity.status);
-                  const bgColor = getActivityColor(activity.status);
-                  // orderType comes from backend as enum: WALKIN, DELIVERY, CLEARBILL
-                  const orderType = activity.orderType || 'DELIVERY';
-                  
-                  // Convert to display name
-                  const orderTypeDisplay = orderType === 'WALKIN' ? 'Walk-in' : 
-                                         orderType === 'CLEARBILL' ? 'Clear Bill' : 
-                                         'Delivery';
 
-                  // Ensure amounts are numbers
-                  const totalAmount = typeof activity.totalAmount === 'number' ? activity.totalAmount : parseFloat(activity.totalAmount) || 0;
-                  const paidAmount = typeof activity.paidAmount === 'number' ? activity.paidAmount : parseFloat(activity.paidAmount) || 0;
-
-                  // Get payment status badge info
-                  const paymentStatusInfo = getPaymentStatusBadge(activity.paymentStatus);
-
-                  return (
-                    <div key={activity.id} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start gap-4">
-                        <div className={`w-12 h-12 ${bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
-                          <Icon className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2 flex-1 flex-wrap">
-                              <p className="text-sm font-semibold text-gray-900 line-clamp-2">
-                                {activity.text}
-                              </p>
-                              <Badge variant={orderType === "WALKIN" ? "secondary" : orderType === "CLEARBILL" ? "outline" : "default"} className="text-xs shrink-0">
-                                {orderTypeDisplay}
-                              </Badge>
-                              <Badge className={`text-xs shrink-0 ${paymentStatusInfo.className}`}>
-                                {paymentStatusInfo.label}
-                              </Badge>
-                            </div>
-                            <Badge variant={activity.status === "success" ? "default" : activity.status === "new" ? "secondary" : "outline"}>
-                              {activity.status}
-                            </Badge>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs text-gray-500">
-                              {activity.time}
-                              {activity.date && (
-                                <span className="ml-1 text-gray-400">
-                                  • {activity.date}
-                                </span>
-                              )}
-                            </p>
-                            {activity.deliveredAtFormatted && (
-                              <p className="text-xs text-green-600 font-medium">
-                                Delivered: {activity.deliveredAtFormatted}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs">
-                              <span className="text-gray-600">
-                                Total: <span className="font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
-                              </span>
-                              <span className="text-gray-600">
-                                Paid: <span className="font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            {/* Search and Filter Bar */}
+            <div className="flex gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input
+                  placeholder="Search by customer name or house number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Payment Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payment Status</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="not_paid">Not Paid</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="overpaid">Overpaid</SelectItem>
+                  <SelectItem value="refund">Refund</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'assigned' | 'completed')} className="w-full">
+              <TabsList className="mb-6">
+                <TabsTrigger value="assigned">Assigned</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="assigned" className="mt-0">
+                {loading ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-8 w-8 mx-auto animate-spin text-gray-400 mb-3" />
+                    <p className="text-gray-500">Loading orders...</p>
+                  </div>
+                ) : getFilteredOrders().length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <Package className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                    <p className="text-gray-500">No assigned orders found</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Customer</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Type</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Payment Status</th>
+                          <th className="text-right p-3 text-sm font-semibold text-gray-700">Total</th>
+                          <th className="text-right p-3 text-sm font-semibold text-gray-700">Paid</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Rider</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getFilteredOrders().map((order: any) => {
+                          const paymentStatusInfo = getPaymentStatusBadge(order.paymentStatus);
+                          const orderTypeDisplay = order.orderType === 'WALKIN' ? 'Walk-in' : 
+                                                 order.orderType === 'CLEARBILL' ? 'Clear Bill' : 
+                                                 'Delivery';
+                          const totalAmount = typeof order.totalAmount === 'number' ? order.totalAmount : parseFloat(order.totalAmount) || 0;
+                          const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
+
+                          return (
+                            <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                              <td className="p-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900">{order.customerName || 'Unknown'}</p>
+                                  {order.houseNo && (
+                                    <p className="text-xs text-gray-500">House: {order.houseNo}</p>
+                                  )}
+                                  <p className="text-xs text-gray-400">#{order.orderId}</p>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <Badge variant="outline" className="text-xs">{orderTypeDisplay}</Badge>
+                              </td>
+                              <td className="p-3">
+                                <Badge className={`text-xs ${paymentStatusInfo.className}`}>
+                                  {paymentStatusInfo.label}
+                                </Badge>
+                              </td>
+                              <td className="p-3 text-right">
+                                <span className="text-sm font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <span className="text-sm font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm text-gray-600">{order.riderName || '-'}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="completed" className="mt-0">
+                {loading ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-8 w-8 mx-auto animate-spin text-gray-400 mb-3" />
+                    <p className="text-gray-500">Loading orders...</p>
+                  </div>
+                ) : getFilteredOrders().length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <CheckCircle className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                    <p className="text-gray-500">No completed orders found</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Customer</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Type</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Payment Status</th>
+                          <th className="text-right p-3 text-sm font-semibold text-gray-700">Total</th>
+                          <th className="text-right p-3 text-sm font-semibold text-gray-700">Paid</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Delivered</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Rider</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getFilteredOrders().map((order: any) => {
+                          const paymentStatusInfo = getPaymentStatusBadge(order.paymentStatus);
+                          const orderTypeDisplay = order.orderType === 'WALKIN' ? 'Walk-in' : 
+                                                 order.orderType === 'CLEARBILL' ? 'Clear Bill' : 
+                                                 'Delivery';
+                          const totalAmount = typeof order.totalAmount === 'number' ? order.totalAmount : parseFloat(order.totalAmount) || 0;
+                          const paidAmount = typeof order.paidAmount === 'number' ? order.paidAmount : parseFloat(order.paidAmount) || 0;
+
+                          return (
+                            <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                              <td className="p-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900">{order.customerName || 'Unknown'}</p>
+                                  {order.houseNo && (
+                                    <p className="text-xs text-gray-500">House: {order.houseNo}</p>
+                                  )}
+                                  <p className="text-xs text-gray-400">#{order.orderId}</p>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <Badge variant="outline" className="text-xs">{orderTypeDisplay}</Badge>
+                              </td>
+                              <td className="p-3">
+                                <Badge className={`text-xs ${paymentStatusInfo.className}`}>
+                                  {paymentStatusInfo.label}
+                                </Badge>
+                              </td>
+                              <td className="p-3 text-right">
+                                <span className="text-sm font-semibold text-gray-900">RS. {totalAmount.toFixed(2)}</span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <span className="text-sm font-semibold text-green-600">RS. {paidAmount.toFixed(2)}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm text-green-600">{order.deliveredAtFormatted || '-'}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm text-gray-600">{order.riderName || '-'}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
