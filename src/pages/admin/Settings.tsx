@@ -2,11 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Building2, MapPin, LogOut, ArrowLeft, Droplet, Settings as SettingsIcon } from "lucide-react";
+import { Building2, MapPin, LogOut, ArrowLeft, Droplet, Package, Loader2, Plus, Trash2, Edit2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { apiService } from "@/services/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,16 +19,84 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const Settings = () => {
   const { logout } = useAuth();
-  const [name, setName] = useState("Admin User");
-  const [phone, setPhone] = useState("+91 98765 43210");
-  const [password, setPassword] = useState("");
-  const [company, setCompany] = useState("Smart Supply");
-  const [address, setAddress] = useState("");
+  
+  // Company Setup State
+  const [agencyName, setAgencyName] = useState("");
+  const [agencyAddress, setAgencyAddress] = useState("");
+  const [agencyPhoneNumber, setAgencyPhoneNumber] = useState("");
+  const [agencyLogo, setAgencyLogo] = useState("");
+  
+  // Delivery Areas State
   const [newArea, setNewArea] = useState("");
-  const [areas, setAreas] = useState(["Sector 15", "Green Park"]);
+  const [areasOperated, setAreasOperated] = useState<string[]>([]);
+  
+  // Bottle Categories State
+  const [bottleCategories, setBottleCategories] = useState<any[]>([]);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryPrice, setCategoryPrice] = useState("");
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  
+  // Loading State
+  const [loading, setLoading] = useState(false);
+  const [companySetupLoading, setCompanySetupLoading] = useState(true);
+  
+  // Company Setup ID
+  const [companySetupId, setCompanySetupId] = useState<string | null>(null);
+
+  // Load company setup on mount
+  useEffect(() => {
+    loadCompanySetup();
+  }, []);
+
+  // Load bottle categories when company setup exists
+  useEffect(() => {
+    if (companySetupId) {
+      loadBottleCategories();
+    }
+  }, [companySetupId]);
+
+  const loadCompanySetup = async () => {
+    try {
+      setCompanySetupLoading(true);
+      const res = await apiService.getCompanySetup() as any;
+      if (res.success && res.data) {
+        setAgencyName(res.data.agencyName || "");
+        setAgencyAddress(res.data.agencyAddress || "");
+        setAgencyPhoneNumber(res.data.agencyPhoneNumber || "");
+        setAgencyLogo(res.data.agencyLogo || "");
+        setAreasOperated(Array.isArray(res.data.areasOperated) ? res.data.areasOperated : []);
+        setCompanySetupId(res.data.id);
+      }
+    } catch (error: any) {
+      console.error('Error loading company setup:', error);
+    } finally {
+      setCompanySetupLoading(false);
+    }
+  };
+
+  const loadBottleCategories = async () => {
+    try {
+      const res = await apiService.getBottleCategories() as any;
+      if (res.success) {
+        setBottleCategories(res.data || []);
+      }
+    } catch (error: any) {
+      console.error('Error loading bottle categories:', error);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -37,26 +106,122 @@ const Settings = () => {
 
   const handleAddArea = () => {
     if (newArea.trim()) {
-      setAreas([...areas, newArea]);
+      setAreasOperated([...areasOperated, newArea.trim()]);
       setNewArea("");
-      toast.success("Delivery area added");
     }
   };
 
   const handleRemoveArea = (areaToRemove: string) => {
-    setAreas(areas.filter(area => area !== areaToRemove));
-    toast.success("Delivery area removed");
+    setAreasOperated(areasOperated.filter(area => area !== areaToRemove));
   };
 
-  const handleUpdateProfile = () => {
-    // Add your update logic here
-    toast.success("Profile updated successfully");
+  const handleSaveCompany = async () => {
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!agencyName || !agencyAddress || !agencyPhoneNumber) {
+        toast.error("Please fill all required fields");
+        return;
+      }
+
+      const companyData = {
+        agencyName,
+        agencyAddress,
+        agencyPhoneNumber,
+        agencyLogo,
+        areasOperated
+      };
+
+      let res: any;
+      if (companySetupId) {
+        // Update existing
+        res = await apiService.updateCompanySetup(companyData);
+      } else {
+        // Create new
+        res = await apiService.createCompanySetup(companyData);
+        if (res.success && res.data) {
+          setCompanySetupId(res.data.id);
+        }
+      }
+
+      if (res.success) {
+        toast.success("Company details saved successfully");
+      }
+    } catch (error: any) {
+      console.error('Error saving company setup:', error);
+      toast.error(error.message || "Failed to save company details");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveCompany = () => {
-    // Add your save logic here
-    toast.success("Company details saved successfully");
+  const handleAddCategory = () => {
+    setEditingCategory(null);
+    setCategoryName("");
+    setCategoryPrice("");
+    setIsCategoryDialogOpen(true);
   };
+
+  const handleEditCategory = (category: any) => {
+    setEditingCategory(category);
+    setCategoryName(category.categoryName);
+    setCategoryPrice(category.price.toString());
+    setIsCategoryDialogOpen(true);
+  };
+
+  const handleSaveCategory = async () => {
+    try {
+      if (!categoryName || !categoryPrice) {
+        toast.error("Please fill all fields");
+        return;
+      }
+
+      const categoryData = {
+        categoryName,
+        price: parseFloat(categoryPrice)
+      };
+
+      let res: any;
+      if (editingCategory) {
+        // Update existing
+        res = await apiService.updateBottleCategory(editingCategory.id, categoryData);
+      } else {
+        // Create new
+        res = await apiService.createBottleCategory(categoryData);
+      }
+
+      if (res.success) {
+        toast.success(`Bottle category ${editingCategory ? 'updated' : 'created'} successfully`);
+        setIsCategoryDialogOpen(false);
+        loadBottleCategories();
+      }
+    } catch (error: any) {
+      console.error('Error saving bottle category:', error);
+      toast.error(error.message || "Failed to save bottle category");
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      const res = await apiService.deleteBottleCategory(id) as any;
+      if (res.success) {
+        toast.success("Bottle category deleted successfully");
+        loadBottleCategories();
+      }
+    } catch (error: any) {
+      console.error('Error deleting bottle category:', error);
+      toast.error(error.message || "Failed to delete bottle category");
+    }
+  };
+
+  if (companySetupLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -84,50 +249,6 @@ const Settings = () => {
 
         {/* Content - White Cards */}
         <div className="bg-white rounded-t-3xl -mt-4 p-6 space-y-4 pb-4">
-          {/* Admin Profile Card */}
-          <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-4 border border-blue-100">
-            <div className="flex items-center gap-2 mb-3">
-              <User className="h-5 w-5 text-blue-600" />
-              <p className="font-bold text-gray-900">Admin Profile</p>
-            </div>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm text-gray-700">Name</Label>
-                <Input
-                  id="name"
-                  placeholder="Admin Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm text-gray-700">Phone Number</Label>
-                <Input
-                  id="phone"
-                  placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm text-gray-700">New Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-11"
-                />
-              </div>
-              <Button onClick={handleUpdateProfile} className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white">
-                Update Profile
-              </Button>
-            </div>
-          </div>
-
           {/* Company Details Card */}
           <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-4 border border-green-100">
             <div className="flex items-center gap-2 mb-3">
@@ -136,26 +257,41 @@ const Settings = () => {
             </div>
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="company" className="text-sm text-gray-700">Company Name</Label>
+                <Label htmlFor="company" className="text-sm text-gray-700">Company Name *</Label>
                 <Input
                   id="company"
                   placeholder="Smart Supply"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
+                  value={agencyName}
+                  onChange={(e) => setAgencyName(e.target.value)}
                   className="h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm text-gray-700">Business Address</Label>
+                <Label htmlFor="address" className="text-sm text-gray-700">Business Address *</Label>
                 <Input
                   id="address"
                   placeholder="Enter business address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  value={agencyAddress}
+                  onChange={(e) => setAgencyAddress(e.target.value)}
                   className="h-11"
                 />
               </div>
-              <Button onClick={handleSaveCompany} className="w-full h-12 bg-green-600 hover:bg-green-700 text-white">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm text-gray-700">Phone Number *</Label>
+                <Input
+                  id="phone"
+                  placeholder="+92 300 1234567"
+                  value={agencyPhoneNumber}
+                  onChange={(e) => setAgencyPhoneNumber(e.target.value)}
+                  className="h-11"
+                />
+              </div>
+              <Button 
+                onClick={handleSaveCompany} 
+                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white"
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save Changes
               </Button>
             </div>
@@ -176,6 +312,7 @@ const Settings = () => {
                   placeholder="Add delivery area"
                   value={newArea}
                   onChange={(e) => setNewArea(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddArea()}
                   className="h-11"
                 />
                 <Button onClick={handleAddArea} className="h-11 bg-purple-600 hover:bg-purple-700 text-white">
@@ -183,7 +320,7 @@ const Settings = () => {
                 </Button>
               </div>
               <div className="space-y-2">
-                {areas.map((area, index) => (
+                {areasOperated.map((area, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
                     <span className="text-sm font-medium text-gray-900">{area}</span>
                     <Button
@@ -196,6 +333,61 @@ const Settings = () => {
                     </Button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottle Categories Card */}
+          <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-4 border border-blue-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-blue-600" />
+                <p className="font-bold text-gray-900">Bottle Categories</p>
+              </div>
+              <Button
+                onClick={handleAddCategory}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Manage different bottle sizes and their prices
+              </p>
+              <div className="space-y-2">
+                {bottleCategories.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">No bottle categories yet</p>
+                ) : (
+                  bottleCategories.map((category) => (
+                    <div key={category.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{category.categoryName}</p>
+                        <p className="text-xs text-gray-500">RS. {parseFloat(category.price).toFixed(2)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditCategory(category)}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCategory(category.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -253,70 +445,42 @@ const Settings = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Admin Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  placeholder="Admin Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleUpdateProfile}>Update Profile</Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
                 Company Details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="company">Company Name</Label>
+                <Label htmlFor="company">Company Name *</Label>
                 <Input
                   id="company"
                   placeholder="Smart Supply"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
+                  value={agencyName}
+                  onChange={(e) => setAgencyName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Business Address</Label>
+                <Label htmlFor="address">Business Address *</Label>
                 <Input
                   id="address"
                   placeholder="Enter business address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  value={agencyAddress}
+                  onChange={(e) => setAgencyAddress(e.target.value)}
                 />
               </div>
-              <Button onClick={handleSaveCompany}>Save Changes</Button>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number *</Label>
+                <Input
+                  id="phone"
+                  placeholder="+92 300 1234567"
+                  value={agencyPhoneNumber}
+                  onChange={(e) => setAgencyPhoneNumber(e.target.value)}
+                />
+              </div>
+              <Button onClick={handleSaveCompany} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Changes
+              </Button>
             </CardContent>
           </Card>
 
@@ -336,11 +500,12 @@ const Settings = () => {
                   placeholder="Add delivery area"
                   value={newArea}
                   onChange={(e) => setNewArea(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddArea()}
                 />
                 <Button onClick={handleAddArea}>Add Area</Button>
               </div>
               <div className="space-y-2">
-                {areas.map((area, index) => (
+                {areasOperated.map((area, index) => (
                   <div key={index} className="flex items-center justify-between p-2 border rounded">
                     <span>{area}</span>
                     <Button variant="ghost" size="sm" onClick={() => handleRemoveArea(area)}>
@@ -348,6 +513,56 @@ const Settings = () => {
                     </Button>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Bottle Categories
+                </CardTitle>
+                <Button onClick={handleAddCategory} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Category
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Manage different bottle sizes and their prices
+              </p>
+              <div className="space-y-2">
+                {bottleCategories.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">No bottle categories yet</p>
+                ) : (
+                  bottleCategories.map((category) => (
+                    <div key={category.id} className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <p className="font-medium">{category.categoryName}</p>
+                        <p className="text-sm text-muted-foreground">RS. {parseFloat(category.price).toFixed(2)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditCategory(category)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCategory(category.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -384,6 +599,47 @@ const Settings = () => {
           </Card>
         </div>
       </div>
+
+      {/* Bottle Category Dialog */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? 'Edit' : 'Add'} Bottle Category</DialogTitle>
+            <DialogDescription>
+              {editingCategory ? 'Update the bottle category details' : 'Add a new bottle category with its price'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="categoryName">Category Name *</Label>
+              <Input
+                id="categoryName"
+                placeholder="e.g., 19 Liter Bottle"
+                value={categoryName}
+                onChange={(e) => setCategoryName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="categoryPrice">Price (RS.) *</Label>
+              <Input
+                id="categoryPrice"
+                type="number"
+                placeholder="e.g., 90"
+                value={categoryPrice}
+                onChange={(e) => setCategoryPrice(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCategory}>
+              {editingCategory ? 'Update' : 'Add'} Category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -317,6 +317,54 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  // Company Setup API
+  async getCompanySetup() {
+    return this.request('/company-setup');
+  }
+
+  async createCompanySetup(data: any) {
+    return this.request('/company-setup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCompanySetup(data: any) {
+    return this.request('/company-setup', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Bottle Categories API
+  async getBottleCategories() {
+    return this.request('/bottle-categories');
+  }
+
+  async getBottleCategoryById(id: string) {
+    return this.request(`/bottle-categories/${id}`);
+  }
+
+  async createBottleCategory(data: any) {
+    return this.request('/bottle-categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateBottleCategory(id: string, data: any) {
+    return this.request(`/bottle-categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteBottleCategory(id: string) {
+    return this.request(`/bottle-categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiService = new ApiService();
