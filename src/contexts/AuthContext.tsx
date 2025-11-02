@@ -11,6 +11,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isRider: boolean;
+  setAuthToken: (token: string) => void;
+  setAuthUser: (user: any) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -115,6 +117,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const setAuthToken = (newToken: string) => {
+    setToken(newToken);
+  };
+
+  const setAuthUser = (newUser: any) => {
+    setUser(newUser);
+  };
+
   const isAuthenticated = !!user && !!token;
   const isAdmin = user?.role === 'ADMIN';
   const isRider = user?.role === 'RIDER';
@@ -128,6 +138,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
     isAdmin,
     isRider,
+    setAuthToken,
+    setAuthUser,
   };
 
   return (

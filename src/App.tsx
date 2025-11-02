@@ -13,6 +13,7 @@ import AdminLayout from "./components/layouts/AdminLayout";
 import RiderLayout from "./components/layouts/RiderLayout";
 import PWAUpdatePrompt from "./components/PWAUpdatePrompt";
 import Index from "./pages/Index";
+import OnboardingWelcome from "./pages/OnboardingWelcome";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Customers from "./pages/admin/Customers";
 import CustomerDetail from "./pages/admin/CustomerDetail";
@@ -41,6 +42,9 @@ const AppRoutes = () => {
       <Routes>
         {/* Login Route - Public */}
         <Route path="/login" element={<Index />} />
+        
+        {/* Onboarding Route - Public */}
+        <Route path="/onboarding" element={<OnboardingWelcome />} />
         
         {/* Root Route - Redirect based on auth status */}
         <Route path="/" element={<RootRedirect />} />

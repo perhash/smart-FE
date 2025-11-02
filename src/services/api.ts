@@ -317,6 +317,93 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  // Onboarding API
+  async checkAdminExists() {
+    return this.request('/auth/check-admin');
+  }
+
+  async completeOnboarding(onboardingData: any) {
+    return this.request('/auth/onboarding', {
+      method: 'POST',
+      body: JSON.stringify(onboardingData),
+    });
+  }
+
+  // Company Setup API
+  async getCompanySetup() {
+    return this.request('/company-setup');
+  }
+
+  async createCompanySetup(companyData: any) {
+    const token = this.getAuthToken();
+    return this.request('/company-setup', {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(companyData),
+    });
+  }
+
+  async updateCompanySetup(id: string, companyData: any) {
+    const token = this.getAuthToken();
+    return this.request(`/company-setup/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(companyData),
+    });
+  }
+
+  // Bottle Categories API
+  async getBottleCategories() {
+    return this.request('/bottle-categories');
+  }
+
+  async createBottleCategory(categoryData: any) {
+    const token = this.getAuthToken();
+    return this.request('/bottle-categories', {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async bulkCreateBottleCategories(categories: any[]) {
+    const token = this.getAuthToken();
+    return this.request('/bottle-categories/bulk', {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify({ categories }),
+    });
+  }
+
+  async updateBottleCategory(id: string, categoryData: any) {
+    const token = this.getAuthToken();
+    return this.request(`/bottle-categories/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async deleteBottleCategory(id: string) {
+    const token = this.getAuthToken();
+    return this.request(`/bottle-categories/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+    });
+  }
 }
 
 export const apiService = new ApiService();
