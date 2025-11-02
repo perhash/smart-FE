@@ -75,15 +75,9 @@ export const API_ENDPOINTS = {
   HEALTH: '/health'
 };
 
-// Testing Mode Configuration
-// Set to true to enable testing mode (allows onboarding even when admin exists)
-// Set to false for production (normal onboarding flow)
-export const TESTING_MODE = true;
-
 // Log current configuration (for debugging)
 console.log('API Configuration:', {
   apiBaseUrl: API_BASE_URL,
   isUsingEnvVar: !!import.meta.env.VITE_API_BASE_URL,
-  environment: import.meta.env.VITE_API_BASE_URL ? 'production' : 'development',
-  testingMode: TESTING_MODE
+  environment: import.meta.env.VITE_API_BASE_URL ? 'production' : 'development'
 });
