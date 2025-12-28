@@ -340,8 +340,8 @@ const Customers = () => {
                         <p className="text-sm font-semibold text-amber-900">{customer.totalOrders || 0}</p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <div>
+                    <div className="flex flex-col gap-2 pt-2 border-t">
+                      <div className="flex items-center">
                         <Badge
                           variant={
                             (customer.currentBalance || 0) < 0 ? 'destructive' : (customer.currentBalance || 0) > 0 ? 'default' : 'secondary'
@@ -351,7 +351,7 @@ const Customers = () => {
                         </Badge>
                         <span className="ml-2 text-sm font-medium">Rs {Math.abs(customer.currentBalance || 0)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Link to={`/admin/customers/${customer.id}`}>
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4" />
@@ -365,7 +365,7 @@ const Customers = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleWhatsAppClick(customer)}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
                             title="Send WhatsApp message"
                           >
                             <svg
