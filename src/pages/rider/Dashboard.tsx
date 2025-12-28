@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
 import { supabase } from "@/lib/supabase";
 import { Droplet } from "lucide-react";
+import { getTodayPktDate, formatPktDate } from "@/utils/timezone";
 
 interface Order {
   id: string;
@@ -25,6 +26,7 @@ interface Order {
   currentOrderAmount?: number;
   paymentStatus: string;
   address?: string;
+  createdAt?: string | Date;
 }
 
 // Helper function to get payment status badge
@@ -57,10 +59,40 @@ const RiderDashboard = () => {
   const riderId = (user as any)?.riderProfile?.id || (user as any)?.profile?.id;
   const riderName = (user as any)?.riderProfile?.name || (user as any)?.profile?.name || "Rider";
 
-  // Calculate today's delivery metrics
-  const totalOrderAmount = completedDeliveries.reduce((sum, delivery) => sum + (delivery.amount || 0), 0);
-  const totalReceivedAmount = completedDeliveries.reduce((sum, delivery) => sum + (delivery.paidAmount || 0), 0);
-  const totalCurrentOrderAmount = completedDeliveries.reduce((sum, delivery) => sum + (delivery.currentOrderAmount || 0), 0);
+  // Calculate today's delivery metrics from all today's orders (assigned + completed)
+  const todayMetrics = useMemo(() => {
+    const todayPktDate = getTodayPktDate();
+    const allTodayOrders = [...assignedDeliveries, ...completedDeliveries].filter((delivery) => {
+      if (!delivery.createdAt) return false;
+      const deliveryDate = formatPktDate(delivery.createdAt);
+      return deliveryDate === todayPktDate;
+    });
+
+    // Total current order amount of today's orders
+    const totalCurrentOrderAmount = allTodayOrders.reduce((sum, delivery) => sum + (delivery.currentOrderAmount || 0), 0);
+    
+    // Total received amount of today's orders
+    const totalReceivedAmount = allTodayOrders.reduce((sum, delivery) => sum + (delivery.paidAmount || 0), 0);
+    
+    // Calculate difference: Total Current Order - Total Received
+    const difference = totalCurrentOrderAmount - totalReceivedAmount;
+    
+    // Dynamic third metric: Recovery or Udhaar
+    const isRecovery = difference < 0;
+    const thirdMetricAmount = Math.abs(difference);
+    const thirdMetricLabel = isRecovery ? "Recovery" : "Udhaar";
+
+    return {
+      totalCurrentOrderAmount,
+      totalReceivedAmount,
+      difference,
+      isRecovery,
+      thirdMetricAmount,
+      thirdMetricLabel
+    };
+  }, [assignedDeliveries, completedDeliveries]);
+
+  const { totalCurrentOrderAmount, totalReceivedAmount, isRecovery, thirdMetricAmount, thirdMetricLabel } = todayMetrics;
 
   const fetchRiderData = useCallback(async () => {
     try {
@@ -68,16 +100,34 @@ const RiderDashboard = () => {
       if (!riderId) return;
       const response = await apiService.getRiderDashboard(riderId) as any;
       if (response?.success) {
+        const todayPktDate = getTodayPktDate();
+        
+        // Filter assigned deliveries for today only
         const assigned = (response.data?.assignedDeliveries || []) as any[];
+        const assignedToday = assigned.filter((delivery: Order) => {
+          if (!delivery.createdAt) return false;
+          const deliveryDate = formatPktDate(delivery.createdAt);
+          return deliveryDate === todayPktDate;
+        });
+        
         const rank = (p?: string) => (p === 'high' ? 0 : p === 'normal' ? 1 : p === 'medium' ? 1 : 2);
-        assigned.sort((a, b) => {
+        assignedToday.sort((a, b) => {
           const ar = rank(a.priority);
           const br = rank(b.priority);
           if (ar !== br) return ar - br;
           return (a.id || '').localeCompare(b.id || '');
         });
-        setAssignedDeliveries(assigned);
-        setCompletedDeliveries(response.data?.completedDeliveries || []);
+        
+        // Filter completed deliveries for today only
+        const completed = (response.data?.completedDeliveries || []) as any[];
+        const completedToday = completed.filter((delivery: Order) => {
+          if (!delivery.createdAt) return false;
+          const deliveryDate = formatPktDate(delivery.createdAt);
+          return deliveryDate === todayPktDate;
+        });
+        
+        setAssignedDeliveries(assignedToday);
+        setCompletedDeliveries(completedToday);
       }
     } catch (error) {
       console.error('Error fetching rider data:', error);
@@ -192,8 +242,8 @@ const RiderDashboard = () => {
             <div className="grid grid-cols-3 gap-3 mt-4 mb-4 ">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 border border-blue-200 h-full">
                 <div className="flex flex-col h-full">
-                  <p className="text-xs text-blue-700 mb-2">Total Order</p>
-                  <p className="text-xl font-bold text-blue-900 mt-auto">RS. {totalOrderAmount}</p>
+                  <p className="text-xs text-blue-700 mb-2">Total Current Order</p>
+                  <p className="text-xl font-bold text-blue-900 mt-auto">RS. {totalCurrentOrderAmount}</p>
                 </div>
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 border border-green-200 h-full">
@@ -202,10 +252,18 @@ const RiderDashboard = () => {
                   <p className="text-xl font-bold text-green-900 mt-auto">RS. {totalReceivedAmount}</p>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 border border-purple-200 h-full">
+              <div className={`bg-gradient-to-br rounded-2xl p-4 border h-full ${
+                isRecovery 
+                  ? 'from-purple-50 to-purple-100 border-purple-200' 
+                  : 'from-red-50 to-red-100 border-red-200'
+              }`}>
                 <div className="flex flex-col h-full">
-                  <p className="text-xs text-purple-700 mb-2">Current Order</p>
-                  <p className="text-xl font-bold text-purple-900 mt-auto">RS. {totalCurrentOrderAmount}</p>
+                  <p className={`text-xs mb-2 ${
+                    isRecovery ? 'text-purple-700' : 'text-red-700'
+                  }`}>{thirdMetricLabel}</p>
+                  <p className={`text-xl font-bold mt-auto ${
+                    isRecovery ? 'text-purple-900' : 'text-red-900'
+                  }`}>RS. {thirdMetricAmount}</p>
                 </div>
               </div>
             </div>
@@ -228,14 +286,11 @@ const RiderDashboard = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="font-bold text-gray-900">{delivery.id}</p>
+                              <p className="font-bold text-gray-900">{delivery.customer}</p>
                               <Badge className="bg-cyan-100 text-cyan-700">
                                 Assigned
                               </Badge>
                             </div>
-                            <p className="font-semibold text-gray-800">
-                              {delivery.customer}
-                            </p>
                             <p className="text-sm text-gray-500">{delivery.phone}</p>
                           </div>
                           <div className="text-right">
@@ -278,14 +333,11 @@ const RiderDashboard = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="font-bold text-gray-900">{delivery.id}</p>
+                              <p className="font-bold text-gray-900">{delivery.customer}</p>
                               <Badge className="bg-green-600 text-white">
                                 Completed
                               </Badge>
                             </div>
-                            <p className="font-semibold text-gray-800">
-                              {delivery.customer}
-                            </p>
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-lg text-green-700">
@@ -340,7 +392,7 @@ const RiderDashboard = () => {
           </div>
 
           {/* Metrics - Expanded for Desktop */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 border border-white/30">
               <div className="flex flex-col items-center justify-center">
                 <div className="w-16 h-16 bg-white/30 rounded-2xl flex items-center justify-center mb-3">
@@ -371,7 +423,7 @@ const RiderDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 border border-white/30">
+            {/* <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 border border-white/30">
               <div className="flex flex-col items-center justify-center">
                 <div className="w-16 h-16 bg-white/30 rounded-2xl flex items-center justify-center mb-3">
                   <Phone className="h-8 w-8 text-white" />
@@ -379,7 +431,7 @@ const RiderDashboard = () => {
                 <p className="text-4xl font-bold text-white">RS. {completedDeliveries.reduce((sum, d) => sum + (d.amount || 0), 0)}</p>
                 <p className="text-sm text-white/80 mt-1">Earnings</p>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -414,8 +466,8 @@ const RiderDashboard = () => {
                   <DollarSign className="h-8 w-8 text-blue-700" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-blue-700 font-medium mb-1">Total Order</p>
-                  <p className="text-3xl font-bold text-blue-900">RS. {totalOrderAmount}</p>
+                  <p className="text-sm text-blue-700 font-medium mb-1">Total Current Order</p>
+                  <p className="text-3xl font-bold text-blue-900">RS. {totalCurrentOrderAmount}</p>
                 </div>
               </div>
             </div>
@@ -430,14 +482,26 @@ const RiderDashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-6 border border-purple-200 h-full">
+            <div className={`bg-gradient-to-br rounded-3xl p-6 border h-full ${
+              isRecovery 
+                ? 'from-purple-50 to-purple-100 border-purple-200' 
+                : 'from-red-50 to-red-100 border-red-200'
+            }`}>
               <div className="flex items-center gap-4 h-full">
-                <div className="w-14 h-14 bg-purple-200 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <Package className="h-8 w-8 text-purple-700" />
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                  isRecovery ? 'bg-purple-200' : 'bg-red-200'
+                }`}>
+                  <Package className={`h-8 w-8 ${
+                    isRecovery ? 'text-purple-700' : 'text-red-700'
+                  }`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-purple-700 font-medium mb-1">Current Order</p>
-                  <p className="text-3xl font-bold text-purple-900">RS. {totalCurrentOrderAmount}</p>
+                  <p className={`text-sm font-medium mb-1 ${
+                    isRecovery ? 'text-purple-700' : 'text-red-700'
+                  }`}>{thirdMetricLabel}</p>
+                  <p className={`text-3xl font-bold ${
+                    isRecovery ? 'text-purple-900' : 'text-red-900'
+                  }`}>RS. {thirdMetricAmount}</p>
                 </div>
               </div>
             </div>
@@ -458,10 +522,9 @@ const RiderDashboard = () => {
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <p className="font-bold text-gray-900">{delivery.id}</p>
+                            <p className="font-bold text-gray-900">{delivery.customer}</p>
                             <Badge className="bg-cyan-100 text-cyan-700">Assigned</Badge>
                           </div>
-                          <p className="font-semibold text-gray-800 mb-1">{delivery.customer}</p>
                           <p className="text-sm text-gray-500">{delivery.phone}</p>
                         </div>
                       </div>
@@ -497,10 +560,9 @@ const RiderDashboard = () => {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <p className="font-bold text-gray-900">{delivery.id}</p>
+                              <p className="font-bold text-gray-900">{delivery.customer}</p>
                               <Badge className="bg-green-600 text-white">Completed</Badge>
                             </div>
-                            <p className="font-semibold text-gray-800">{delivery.customer}</p>
                           </div>
                         </div>
                         <div className="space-y-2">

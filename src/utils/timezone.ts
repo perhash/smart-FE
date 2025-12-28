@@ -135,3 +135,35 @@ export function formatPktRelativeTime(date: Date | string): string {
   return formatPktDateTime12Hour(date);
 }
 
+/**
+ * Format date string (YYYY-MM-DD) to readable format (e.g., "Dec 15, 2024")
+ * @param {string} dateStr - Date string in YYYY-MM-DD format
+ * @returns {string} Formatted date string
+ */
+export function formatPktDateReadable(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${monthNames[month - 1]} ${day}, ${year}`;
+}
+
+/**
+ * Get date string for a date that is N days from the given date
+ * @param {string} dateStr - Date string in YYYY-MM-DD format
+ * @param {number} days - Number of days to add (negative to subtract)
+ * @returns {string} New date string in YYYY-MM-DD format
+ */
+export function addDaysToPktDate(dateStr: string, days: number): string {
+  // Parse date as UTC, but treat it as PKT
+  const date = new Date(dateStr + 'T00:00:00Z');
+  // Add PKT offset
+  const PKT_OFFSET_HOURS = 5;
+  const pktDate = new Date(date.getTime() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
+  // Add days
+  pktDate.setUTCDate(pktDate.getUTCDate() + days);
+  // Convert back
+  const year = pktDate.getUTCFullYear();
+  const month = String(pktDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(pktDate.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+

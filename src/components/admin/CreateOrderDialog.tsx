@@ -39,12 +39,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
+import { useCustomerContext } from "@/contexts/CustomerContext";
 
 interface CreateOrderDialogProps {
   trigger?: React.ReactNode;
 }
 
 export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
+  const { searchCustomers, getCustomerBalance } = useCustomerContext();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -103,7 +105,7 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     }
   }, [orderType, selectedCustomer]);
 
-  // Debounced customer search
+  // Debounced customer search with IndexedDB + fallback
   useEffect(() => {
     const handler = setTimeout(async () => {
       if (!searchQuery) {
@@ -112,20 +114,18 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
       }
       try {
         setLoadingCustomers(true);
-        const res = await apiService.searchCustomers(searchQuery);
-        if ((res as any).success) {
-          setCustomerResults((res as any).data);
-        } else {
-          setCustomerResults([]);
-        }
+        // Use CustomerContext search (IndexedDB first, then API fallback)
+        const results = await searchCustomers(searchQuery);
+        setCustomerResults(results);
       } catch (e) {
+        console.error('Error searching customers:', e);
         setCustomerResults([]);
       } finally {
         setLoadingCustomers(false);
       }
     }, 300);
     return () => clearTimeout(handler);
-  }, [searchQuery]);
+  }, [searchQuery, searchCustomers]);
 
   const filteredCustomers = customerResults;
 
@@ -459,9 +459,19 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                     {filteredCustomers.map((customer) => (
                       <div
                         key={customer.id}
-                        onClick={() => {
+                        onClick={async () => {
                           setSelectedCustomer(customer);
                           setSearchQuery("");
+                          // Fetch fresh balance when customer is selected
+                          if (customer.id !== 'walkin') {
+                            try {
+                              const balance = await getCustomerBalance(customer.id);
+                              setSelectedCustomer({ ...customer, currentBalance: balance });
+                            } catch (error) {
+                              console.error('Error fetching customer balance:', error);
+                              // Continue with cached balance if fetch fails
+                            }
+                          }
                         }}
                         className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                       >

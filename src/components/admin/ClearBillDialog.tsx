@@ -32,12 +32,14 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { apiService } from "@/services/api";
+import { useCustomerContext } from "@/contexts/CustomerContext";
 
 interface ClearBillDialogProps {
   trigger?: React.ReactNode;
 }
 
 export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
+  const { searchCustomers, getCustomerBalance } = useCustomerContext();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -50,7 +52,7 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
   const [activeOrderMap, setActiveOrderMap] = useState<Record<string, boolean>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Debounced customer search
+  // Debounced customer search with IndexedDB + fallback
   useEffect(() => {
     const handler = setTimeout(async () => {
       if (!searchQuery) {
@@ -59,20 +61,18 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
       }
       try {
         setLoadingCustomers(true);
-        const res = await apiService.searchCustomers(searchQuery);
-        if ((res as any).success) {
-          setCustomerResults((res as any).data);
-        } else {
-          setCustomerResults([]);
-        }
+        // Use CustomerContext search (IndexedDB first, then API fallback)
+        const results = await searchCustomers(searchQuery);
+        setCustomerResults(results);
       } catch (e) {
+        console.error('Error searching customers:', e);
         setCustomerResults([]);
       } finally {
         setLoadingCustomers(false);
       }
     }, 300);
     return () => clearTimeout(handler);
-  }, [searchQuery]);
+  }, [searchQuery, searchCustomers]);
 
   // For each searched customer, detect if they have an in-progress order and mark them to exclude from list
   useEffect(() => {
@@ -206,11 +206,21 @@ export function ClearBillDialog({ trigger }: ClearBillDialogProps) {
                       return (
                         <div
                           key={customer.id}
-                          onClick={() => {
+                          onClick={async () => {
                             if (inProgress) return; // keep visible but not selectable
                             setSelectedCustomer(customer);
                             setSearchQuery("");
-                            setPaymentAmount(Math.abs(customer.currentBalance).toString());
+                            // Fetch fresh balance when customer is selected
+                            try {
+                              const balance = await getCustomerBalance(customer.id);
+                              const updatedCustomer = { ...customer, currentBalance: balance };
+                              setSelectedCustomer(updatedCustomer);
+                              setPaymentAmount(Math.abs(balance).toString());
+                            } catch (error) {
+                              console.error('Error fetching customer balance:', error);
+                              // Use cached balance if fetch fails
+                              setPaymentAmount(Math.abs(customer.currentBalance || 0).toString());
+                            }
                           }}
                           className={`p-3 border-b last:border-b-0 ${inProgress ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted cursor-pointer'}`}
                         >

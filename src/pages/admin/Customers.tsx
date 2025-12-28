@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Phone, Plus, Edit, Eye, MapPin, DollarSign, Users, RefreshCw, Droplet } from "lucide-react";
+import { Search, Phone, Plus, Edit, Eye, MapPin, DollarSign, Users, RefreshCw, Droplet, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AddCustomerDialog } from "@/components/admin/AddCustomerDialog";
 import { CustomerStatusToggle } from "@/components/admin/CustomerStatusToggle";
@@ -31,7 +31,7 @@ const Customers = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  
+
   // Check URL params for filter
   useEffect(() => {
     const filterParam = searchParams.get('filter');
@@ -105,8 +105,56 @@ const Customers = () => {
     setSelectedCustomer(null);
   };
 
+  // Format phone number for WhatsApp (remove spaces, +, -, etc.)
+  const formatPhoneForWhatsApp = (phone: string) => {
+    if (!phone) return '';
+    // Remove all non-digit characters except leading +
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    // If it starts with +, keep it, otherwise ensure it starts with country code
+    if (!cleaned.startsWith('+')) {
+      // If it starts with 0, replace with country code (Pakistan: +92)
+      if (cleaned.startsWith('0')) {
+        cleaned = '+92' + cleaned.substring(1);
+      } else if (cleaned.startsWith('92')) {
+        cleaned = '+' + cleaned;
+      } else {
+        // Assume it's a local number, add +92
+        cleaned = '+92' + cleaned;
+      }
+    }
+    return cleaned;
+  };
+
+  // Generate WhatsApp message with bilingual content
+  const generateWhatsAppMessage = (customer: any) => {
+    const balance = Math.abs(customer.currentBalance || 0);
+    const balanceText = `Rs ${balance.toLocaleString()}`;
+
+    const englishMessage = `Muaziz Customer,\n\nAap ke pani ka bill ${balanceText} hai.\n\n Meharbani farma kar apna mojooda bill ada kar dein. \n\nShukriya.`;
+
+
+    return `${englishMessage}`;
+  };
+
+
+  // Handle WhatsApp click
+  const handleWhatsAppClick = (customer: any) => {
+    const phoneNumber = customer.whatsapp || customer.phone;
+    if (!phoneNumber) {
+      alert('No WhatsApp or phone number available for this customer');
+      return;
+    }
+
+    const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
+    const message = generateWhatsAppMessage(customer);
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${formattedPhone.replace('+', '')}?text=${encodedMessage}`;
+
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
 
       {/* Mobile Layout - Gradient header + actions + cards */}
       <div className="md:hidden">
@@ -312,6 +360,24 @@ const Customers = () => {
                         <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer)}>
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {(customer.whatsapp || customer.phone) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleWhatsAppClick(customer)}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            title="Send WhatsApp message"
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                            </svg>
+                          </Button>
+                        )}
                       </div>
                     </div>
                     <div className="text-xs text-gray-500">
@@ -331,7 +397,7 @@ const Customers = () => {
 
 
       {/* Desktop Header + White Container */}
-      <div className="hidden md:block max-w-4xl mx-auto ">
+      <div className="hidden md:block max-w-6xl mx-auto ">
         {/* Blue Gradient Header */}
         <div className="bg-gradient-to-br from-cyan-900 via-cyan-500 to-cyan-900 p-8 shadow-2xl rounded-3xl mb-8">
           <div className="flex items-center gap-6 mb-8">
@@ -435,7 +501,16 @@ const Customers = () => {
                     variant="outline"
                     onClick={() => {
                       setLoading(true);
-                      fetchCustomers();
+                      (async () => {
+                        try {
+                          const res = await apiService.getCustomers(statusFilter !== 'all' ? statusFilter : undefined);
+                          if ((res as any)?.success) setCustomers((res as any).data);
+                        } catch (e) {
+                          setError('Failed to fetch customers. Please check your connection and try again.');
+                        } finally {
+                          setLoading(false);
+                        }
+                      })();
                     }}
                     disabled={loading}
                   >
@@ -597,6 +672,24 @@ const Customers = () => {
                               >
                                 <Edit className="h-3 w-3" />
                               </Button>
+                              {(customer.whatsapp || customer.phone) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleWhatsAppClick(customer)}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  title="Send WhatsApp message"
+                                >
+                                  <svg
+                                    className="h-3 w-3"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                  </svg>
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -6,7 +6,7 @@ import { ArrowLeft, Package, MapPin, Calendar, ChevronLeft, ChevronRight, Filter
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
-import { getTodayPktDate, formatPktDate } from "@/utils/timezone";
+import { getTodayPktDate, formatPktDate, formatPktDateReadable } from "@/utils/timezone";
 
 interface Order {
   id: string;
@@ -23,6 +23,7 @@ interface Order {
   paidAmount: number;
   paymentStatus: string;
   address?: string;
+  createdAt?: string | Date;
 }
 
 // Helper function to get payment status badge
@@ -45,56 +46,40 @@ const getPaymentStatusBadge = (status?: string) => {
 };
 
 const OrderHistory = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('all');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
+  const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
+  const [currentDate, setCurrentDate] = useState<string>(getTodayPktDate());
 
   const { user } = useAuth();
   const riderId = (user as any)?.riderProfile?.id || (user as any)?.profile?.id;
   const navigate = useNavigate();
 
-  // Calculate date range based on filter (using PKT timezone)
+  // Calculate date range based on time filter (using PKT timezone)
   const getDateRange = () => {
-    const todayStr = getTodayPktDate(); // Today's date in PKT (YYYY-MM-DD)
-    const today = new Date(todayStr + 'T00:00:00Z'); // Parse as UTC date
-    
-    // Get PKT date components by adding offset
+    const todayStr = getTodayPktDate();
     const PKT_OFFSET_HOURS = 5;
     const pktNow = new Date(Date.now() + (PKT_OFFSET_HOURS * 60 * 60 * 1000));
     
-    switch (filter) {
+    switch (timeFilter) {
       case 'today':
-        return {
-          startDate: todayStr,
-          endDate: todayStr
-        };
-      case 'week':
-        // Calculate week start in PKT
-        const dayOfWeek = pktNow.getUTCDay(); // 0 = Sunday
+        return { startDate: todayStr, endDate: todayStr };
+      case 'week': {
+        const dayOfWeek = pktNow.getUTCDay();
         const weekStart = new Date(pktNow);
         weekStart.setUTCDate(pktNow.getUTCDate() - dayOfWeek);
         const weekStartStr = `${weekStart.getUTCFullYear()}-${String(weekStart.getUTCMonth() + 1).padStart(2, '0')}-${String(weekStart.getUTCDate()).padStart(2, '0')}`;
-        return {
-          startDate: weekStartStr,
-          endDate: todayStr
-        };
-      case 'month':
-        // First day of current month in PKT
+        return { startDate: weekStartStr, endDate: todayStr };
+      }
+      case 'month': {
         const monthStartStr = `${pktNow.getUTCFullYear()}-${String(pktNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
-        return {
-          startDate: monthStartStr,
-          endDate: todayStr
-        };
-      case 'year':
-        // First day of current year in PKT
+        return { startDate: monthStartStr, endDate: todayStr };
+      }
+      case 'year': {
         const yearStartStr = `${pktNow.getUTCFullYear()}-01-01`;
-        return {
-          startDate: yearStartStr,
-          endDate: todayStr
-        };
+        return { startDate: yearStartStr, endDate: todayStr };
+      }
       default:
         return { startDate: undefined, endDate: undefined };
     }
@@ -110,24 +95,22 @@ const OrderHistory = () => {
         riderId,
         startDate,
         endDate,
-        page,
-        limit: itemsPerPage
+        paymentStatus: paymentStatusFilter !== 'all' ? paymentStatusFilter : undefined,
+        limit: 1000 // Fetch all orders for the filter range
       }) as any;
 
       if (response?.success) {
-        // Sort by date descending (latest first - LIFO)
-        const sortedOrders = (response.data || []).sort((a: Order, b: Order) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-        setOrders(sortedOrders);
+        // Convert order dates to PKT if needed and group by date
+        const ordersWithPktDate = (response.data || []).map((order: any) => ({
+          ...order,
+          date: order.date || formatPktDate(order.createdAt || new Date().toISOString())
+        }));
         
-        // Calculate total pages (assuming we have total count, otherwise use length)
-        const totalCount = response.total || sortedOrders.length;
-        setTotalPages(Math.ceil(totalCount / itemsPerPage));
+        setAllOrders(ordersWithPktDate);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setOrders([]);
+      setAllOrders([]);
     } finally {
       setLoading(false);
     }
@@ -135,9 +118,99 @@ const OrderHistory = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [riderId, filter, page]);
+  }, [riderId, timeFilter, paymentStatusFilter]);
 
-  const filterOptions = [
+  // Update current date when orders change (after filtering)
+  useEffect(() => {
+    if (allOrders.length > 0) {
+      const dates = [...new Set(allOrders.map((o: Order) => o.date))].sort((a, b) => 
+        new Date(b).getTime() - new Date(a).getTime()
+      );
+      const todayPkt = getTodayPktDate();
+      // Only update if current date is not in available dates
+      if (dates.length > 0 && !dates.includes(currentDate)) {
+        // Prefer today if available, otherwise use first date
+        setCurrentDate(dates.includes(todayPkt) ? todayPkt : dates[0]);
+      }
+    }
+  }, [allOrders, currentDate]);
+
+  // Group orders by date and get available dates
+  const { ordersByDate, availableDates } = useMemo(() => {
+    const grouped: Record<string, Order[]> = {};
+    allOrders.forEach((order) => {
+      const date = order.date;
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(order);
+    });
+
+    // Sort orders within each date by creation time (newest first)
+    Object.keys(grouped).forEach(date => {
+      grouped[date].sort((a, b) => {
+        // Sort by originalId or timestamp if available
+        return (b.originalId || '').localeCompare(a.originalId || '');
+      });
+    });
+
+    const dates = Object.keys(grouped).sort((a, b) => 
+      new Date(b).getTime() - new Date(a).getTime()
+    );
+
+    return { ordersByDate: grouped, availableDates: dates };
+  }, [allOrders]);
+
+  // Get current date orders
+  const currentDateOrders = ordersByDate[currentDate] || [];
+
+  // Generate date selector dates (3 left, current, 3 right)
+  const dateSelectorDates = useMemo(() => {
+    const dates: string[] = [];
+    const currentIndex = availableDates.indexOf(currentDate);
+    
+    // Add 3 dates before current
+    for (let i = 3; i >= 1; i--) {
+      const targetIndex = currentIndex + i;
+      if (targetIndex < availableDates.length) {
+        dates.push(availableDates[targetIndex]);
+      }
+    }
+    
+    // Add current date
+    dates.push(currentDate);
+    
+    // Add 3 dates after current
+    for (let i = 1; i <= 3; i++) {
+      const targetIndex = currentIndex - i;
+      if (targetIndex >= 0) {
+        dates.push(availableDates[targetIndex]);
+      }
+    }
+    
+    return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [availableDates, currentDate]);
+
+  // Navigation handlers
+  const handlePreviousDate = () => {
+    const currentIndex = availableDates.indexOf(currentDate);
+    if (currentIndex < availableDates.length - 1) {
+      setCurrentDate(availableDates[currentIndex + 1]);
+    }
+  };
+
+  const handleNextDate = () => {
+    const currentIndex = availableDates.indexOf(currentDate);
+    if (currentIndex > 0) {
+      setCurrentDate(availableDates[currentIndex - 1]);
+    }
+  };
+
+  const handleDateSelect = (date: string) => {
+    setCurrentDate(date);
+  };
+
+  const timeFilterOptions = [
     { value: 'all', label: 'All Time' },
     { value: 'today', label: 'Today' },
     { value: 'week', label: 'This Week' },
@@ -145,13 +218,13 @@ const OrderHistory = () => {
     { value: 'year', label: 'This Year' },
   ];
 
-  const handlePreviousPage = () => {
-    if (page > 1) setPage(page - 1);
-  };
-
-  const handleNextPage = () => {
-    if (page < totalPages) setPage(page + 1);
-  };
+  const paymentStatusOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'PAID', label: 'Paid' },
+    { value: 'NOT_PAID', label: 'Unpaid' },
+    { value: 'OVERPAID', label: 'Overpaid' },
+    { value: 'PARTIAL', label: 'Partial' },
+  ];
 
   return (
     <div className="min-h-screen pb-24 md:pb-6">
@@ -181,16 +254,31 @@ const OrderHistory = () => {
               </PopoverTrigger>
               <PopoverContent align="end" className="w-56 p-0">
                 <div className="p-2">
-                  <p className="px-3 py-2 text-sm font-semibold text-gray-700">Filter by</p>
-                  {filterOptions.map((option) => (
+                  <p className="px-3 py-2 text-sm font-semibold text-gray-700">Time Range</p>
+                  {timeFilterOptions.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => {
-                        setFilter(option.value as any);
-                        setPage(1);
+                        setTimeFilter(option.value as any);
                       }}
                       className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                        filter === option.value
+                        timeFilter === option.value
+                          ? 'bg-cyan-100 text-cyan-700 font-medium'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                  <p className="px-3 py-2 text-sm font-semibold text-gray-700 mt-2 border-t">Payment Status</p>
+                  {paymentStatusOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setPaymentStatusFilter(option.value);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                        paymentStatusFilter === option.value
                           ? 'bg-cyan-100 text-cyan-700 font-medium'
                           : 'hover:bg-gray-100'
                       }`}
@@ -206,19 +294,68 @@ const OrderHistory = () => {
 
         {/* Content */}
         <div className="bg-white rounded-t-3xl -mt-10 p-6 min-h-[calc(100vh-300px)]">
+          {/* Date Navigation */}
+          {!loading && availableDates.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <Button
+                  onClick={handlePreviousDate}
+                  disabled={availableDates.indexOf(currentDate) >= availableDates.length - 1}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <div className="text-center">
+                  <p className="text-lg font-bold text-gray-900">{formatPktDateReadable(currentDate)}</p>
+                  <p className="text-xs text-gray-500">{currentDateOrders.length} orders</p>
+                </div>
+                <Button
+                  onClick={handleNextDate}
+                  disabled={availableDates.indexOf(currentDate) === 0}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Date Selector (3 left, current, 3 right) */}
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {dateSelectorDates.map((date) => (
+                  <button
+                    key={date}
+                    onClick={() => handleDateSelect(date)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      date === currentDate
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {formatPktDateReadable(date).split(',')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="text-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
               <p className="text-gray-500">Loading orders...</p>
             </div>
-          ) : orders.length === 0 ? (
+          ) : currentDateOrders.length === 0 ? (
             <div className="text-center py-16">
               <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">No orders found</p>
+              <p className="text-gray-500">No orders found for {formatPktDateReadable(currentDate)}</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {orders.map((delivery) => (
+              {currentDateOrders.map((delivery) => (
                 <Link
                   key={delivery.originalId}
                   to={`/rider/orders/${delivery.originalId}`}
@@ -255,7 +392,7 @@ const OrderHistory = () => {
                       </div>
                       <div className="flex items-center gap-1 text-gray-500">
                         <Calendar className="h-3 w-3" />
-                        <p className="text-xs">{formatPktDate(delivery.date)}</p>
+                        <p className="text-xs">{delivery.date}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t">
@@ -272,34 +409,6 @@ const OrderHistory = () => {
             </div>
           )}
 
-          {/* Pagination */}
-          {!loading && orders.length > 0 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t">
-              <Button
-                onClick={handlePreviousPage}
-                disabled={page === 1}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <p className="text-sm text-gray-600">
-                Page {page} of {totalPages}
-              </p>
-              <Button
-                onClick={handleNextPage}
-                disabled={page >= totalPages}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -329,16 +438,31 @@ const OrderHistory = () => {
               </PopoverTrigger>
               <PopoverContent align="end" className="w-56 p-0">
                 <div className="p-2">
-                  <p className="px-3 py-2 text-sm font-semibold text-gray-700">Filter by</p>
-                  {filterOptions.map((option) => (
+                  <p className="px-3 py-2 text-sm font-semibold text-gray-700">Time Range</p>
+                  {timeFilterOptions.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => {
-                        setFilter(option.value as any);
-                        setPage(1);
+                        setTimeFilter(option.value as any);
                       }}
                       className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                        filter === option.value
+                        timeFilter === option.value
+                          ? 'bg-cyan-100 text-cyan-700 font-medium'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                  <p className="px-3 py-2 text-sm font-semibold text-gray-700 mt-2 border-t">Payment Status</p>
+                  {paymentStatusOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setPaymentStatusFilter(option.value);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                        paymentStatusFilter === option.value
                           ? 'bg-cyan-100 text-cyan-700 font-medium'
                           : 'hover:bg-gray-100'
                       }`}
@@ -352,6 +476,55 @@ const OrderHistory = () => {
           </div>
         </div>
 
+        {/* Date Navigation */}
+        {!loading && availableDates.length > 0 && (
+          <div className="bg-white rounded-3xl shadow-lg p-6 mb-8 border border-cyan-100">
+            <div className="flex items-center justify-between mb-6">
+              <Button
+                onClick={handlePreviousDate}
+                disabled={availableDates.indexOf(currentDate) >= availableDates.length - 1}
+                variant="outline"
+                size="lg"
+                className="gap-2"
+              >
+                <ChevronLeft className="h-5 w-5" />
+                Previous Date
+              </Button>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{formatPktDateReadable(currentDate)}</p>
+                <p className="text-sm text-gray-500 mt-1">{currentDateOrders.length} orders</p>
+              </div>
+              <Button
+                onClick={handleNextDate}
+                disabled={availableDates.indexOf(currentDate) === 0}
+                variant="outline"
+                size="lg"
+                className="gap-2"
+              >
+                Next Date
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Date Selector (3 left, current, 3 right) */}
+            <div className="flex gap-3 justify-center flex-wrap">
+              {dateSelectorDates.map((date) => (
+                <button
+                  key={date}
+                  onClick={() => handleDateSelect(date)}
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    date === currentDate
+                      ? 'bg-cyan-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {formatPktDateReadable(date)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Orders Grid */}
         <div className="grid gap-4 md:grid-cols-2">
           {loading ? (
@@ -359,13 +532,13 @@ const OrderHistory = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
               <p className="text-gray-500">Loading orders...</p>
             </div>
-          ) : orders.length === 0 ? (
+          ) : currentDateOrders.length === 0 ? (
             <div className="col-span-2 text-center py-16">
               <Package className="h-20 w-20 mx-auto text-gray-300 mb-4" />
-              <p className="text-lg text-gray-500">No orders found</p>
+              <p className="text-lg text-gray-500">No orders found for {formatPktDateReadable(currentDate)}</p>
             </div>
           ) : (
-            orders.map((delivery) => (
+            currentDateOrders.map((delivery) => (
               <Link key={delivery.originalId} to={`/rider/orders/${delivery.originalId}`}>
                 <div className="bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-6 border border-green-100 hover:shadow-lg transition-all">
                   <div className="flex items-start justify-between mb-4">
@@ -390,7 +563,7 @@ const OrderHistory = () => {
                         <p className="text-xs text-gray-500 mb-1">Date</p>
                         <div className="flex items-center gap-1 text-sm text-gray-700">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatPktDate(delivery.date)}</span>
+                          <span>{delivery.date}</span>
                         </div>
                       </div>
                       <div className="text-right">
@@ -421,34 +594,6 @@ const OrderHistory = () => {
           )}
         </div>
 
-        {/* Pagination */}
-        {!loading && orders.length > 0 && (
-          <div className="flex items-center justify-center gap-4 mt-8">
-            <Button
-              onClick={handlePreviousPage}
-              disabled={page === 1}
-              variant="outline"
-              size="lg"
-              className="gap-2"
-            >
-              <ChevronLeft className="h-5 w-5" />
-              Previous
-            </Button>
-            <p className="text-gray-700 font-medium">
-              Page {page} of {totalPages}
-            </p>
-            <Button
-              onClick={handleNextPage}
-              disabled={page >= totalPages}
-              variant="outline"
-              size="lg"
-              className="gap-2"
-            >
-              Next
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

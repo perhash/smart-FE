@@ -5,7 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { CustomerProvider } from "./contexts/CustomerContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { CustomerSync } from "./components/CustomerSync";
 import { ProtectedRoute, AdminRoute, RiderRoute } from "./components/ProtectedRoute";
 import { SplashScreen } from "./components/SplashScreen";
 import RootRedirect from "./components/RootRedirect";
@@ -102,18 +104,21 @@ const App = () => {
         <SplashScreen onFinish={() => setShowSplash(false)} />
       ) : (
         <AuthProvider>
-          <NotificationProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner 
-                position={isMobile ? "top-center" : "bottom-right"}
-                duration={4000}
-                richColors
-              />
+          <CustomerProvider>
+            <NotificationProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner 
+                  position={isMobile ? "top-center" : "bottom-right"}
+                  duration={4000}
+                  richColors
+                />
               <PWAUpdatePrompt />
+              <CustomerSync />
               <AppRoutes />
-            </TooltipProvider>
-          </NotificationProvider>
+              </TooltipProvider>
+            </NotificationProvider>
+          </CustomerProvider>
         </AuthProvider>
       )}
     </QueryClientProvider>

@@ -48,7 +48,7 @@ class ApiService {
   }
 
   // Orders API
-  async getOrders(params?: { status?: string; date?: string; riderId?: string; startDate?: string; endDate?: string; page?: number; limit?: number }) {
+  async getOrders(params?: { status?: string; date?: string; riderId?: string; startDate?: string; endDate?: string; page?: number; limit?: number; paymentStatus?: string }) {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.append('status', params.status);
     if (params?.date) searchParams.append('date', params.date);
@@ -57,6 +57,7 @@ class ApiService {
     if (params?.endDate) searchParams.append('endDate', params.endDate);
     if (params?.page) searchParams.append('page', params.page.toString());
     if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.paymentStatus) searchParams.append('paymentStatus', params.paymentStatus);
     
     const queryString = searchParams.toString();
     return this.request(`${API_ENDPOINTS.ORDERS}${queryString ? `?${queryString}` : ''}`);
